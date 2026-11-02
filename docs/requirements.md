@@ -104,9 +104,9 @@ Distance and elevation come from the trail; time comes from the hike.
 |---|---|
 | NFR-1 | **Platforms** — responsive installable web app (PWA) working on desktop browsers, iOS Safari and Android Chrome. |
 | NFR-2 | **Internationalisation** — all UI text and e-mails translatable; English and Slovenian at launch; dates, numbers and durations formatted per locale; adding a language requires no code change. |
-| NFR-3 | **Data sovereignty** — all services and data hosted in the EU/EEA (or Switzerland); no dependency on US big-tech services (Google, Microsoft, Amazon, Apple, Cloudflare) at runtime. |
+| NFR-3 | **Data sovereignty** — all services and data hosted in the EU/EEA (or Switzerland); no dependency on US big-tech services (Google, Microsoft, Amazon, Apple, Cloudflare) at runtime. Exception: Hanko Cloud (on AWS) may be used during development only, before real users sign up. |
 | NFR-4 | **Privacy** — GDPR compliant: privacy policy, account deletion, data export, minimal data collection. |
-| NFR-5 | **Security** — authentication via a self-hosted open-source OIDC provider; passwords never handled by the TrailStat backend; HTTPS everywhere. |
+| NFR-5 | **Security** — authentication via the open-source Hanko service (self-hosted in production); passwords never handled by the TrailStat backend; HTTPS everywhere. |
 | NFR-6 | **Portability** — the whole stack runs with Docker Compose, so it can move from a home server to external hosting without code changes. |
 | NFR-7 | **Backups** — automated daily database backups with a tested restore procedure. |
 | NFR-8 | **Licensing** — OpenStreetMap data attributed according to ODbL. |

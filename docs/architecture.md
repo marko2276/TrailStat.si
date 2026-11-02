@@ -9,7 +9,7 @@
  Browser / PWA   │ Caddy — reverse proxy, automatic HTTPS           │
  (PC, iOS,  ───► │   /        → frontend  (static PWA files)        │
   Android)       │   /api     → backend   (Python, FastAPI)         │
-                 │   auth.*   → Zitadel   (OIDC identity provider)  │
+                 │   auth.*   → Hanko     (authentication)          │
                  │                                                  │
                  │ backend ──► PostgreSQL + PostGIS  (own volume)   │
                  │         ──► Overpass API          (OSM import)   │
@@ -26,9 +26,9 @@
 | Maps | MapLibre GL JS | Vector tiles from MapTiler (CH) or self-hosted Protomaps. Not the openstreetmap.org tile servers (usage policy forbids app use). |
 | Elevation chart | Lightweight chart library | Rendered from the trail's elevation profile. |
 | i18n | i18next (frontend), Babel/gettext (backend e-mails) | `en`, `sl` at launch. |
-| Backend | Python 3.12+, FastAPI, SQLAlchemy 2, GeoAlchemy2, Alembic, Pydantic | REST API with generated OpenAPI spec. Validates OIDC access tokens; never sees passwords. |
+| Backend | Python 3.12+, FastAPI, SQLAlchemy 2, GeoAlchemy2, Alembic, Pydantic | REST API with generated OpenAPI spec. Validates Hanko session tokens (JWT via JWKS); never sees passwords. |
 | Database | PostgreSQL 16 + PostGIS | Separate container with named volume. Trail geometries stored as `LineString` (SRID 4326). |
-| Identity | Zitadel (self-hosted) | E-mail + password, passkeys, MFA. Standard OIDC, so the provider is swappable. |
+| Authentication | Hanko on `auth.trailstat.si` | Hanko Cloud (free plan) during development; self-hosted in the compose stack before launch. Passkeys, e-mail + password, e-mail passcodes. Frontend embeds `hanko-elements`. See ADR 0003. |
 | OSM import | Overpass API | Query hiking route relations (`route=hiking`), assemble geometry, store OSM relation ID. Self-host Overpass if volume grows. |
 | Elevation | Copernicus GLO-30 DEM GeoTIFFs read by the backend with `rasterio` | No separate service. Files are mounted read-only into the backend container (start with Slovenia/Alps, a few hundred MB). Sampled once per trail import to compute elevation gain/loss and the profile. |
 | E-mail | SMTP via EU provider | Group invitations, join-request notifications. |
@@ -37,7 +37,7 @@
 ## Data model (first draft)
 
 ```
-User(id, oidc_subject, email, display_name, country?, city?, avatar_url?, locale, created_at)
+User(id, auth_subject (Hanko user ID), email, display_name, country?, city?, avatar_url?, locale, created_at)
   -- avatar_url reserved for future avatar support (nullable, unused in MVP)
 
 Group(id, name, description, visibility[public|private], created_by, created_at)
@@ -68,7 +68,8 @@ private to their owner.
 
 ## Deployment
 
-- **Now:** home server running `docker compose`. Ports 80/443 forwarded to Caddy.
+- **Now:** home server running `docker compose`. Ports 80/443 forwarded to Caddy. Authentication uses Hanko Cloud during development.
+- **Before launch:** Hanko self-hosted in the same compose stack, on the same `auth.trailstat.si` domain.
 - **Later:** same compose stack on an EU VPS (Hetzner, OVHcloud, Scaleway); optionally move PostgreSQL to a managed EU database.
 - **Backups:** nightly `pg_dump` to off-site EU storage (e.g. Hetzner Storage Box); restore tested regularly.
 - **CI:** GitHub Actions — lint, tests, build and publish container images.
