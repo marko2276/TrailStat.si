@@ -20,7 +20,7 @@ many users.
 
 | Area | In scope |
 |---|---|
-| Accounts | Sign up / sign in, profile with preferred language, account deletion & data export (GDPR) |
+| Accounts | Sign up / sign in; profile with e-mail and name/nickname (required), country and city (optional), preferred language; account deletion & data export (GDPR) |
 | Languages | English and Slovenian; easy to add more |
 | Trails | Import from OpenStreetMap; create manually (name, distance, elevation); map + elevation profile for trails with geometry; public / private / group visibility |
 | Hikes | Record a hike on a trail with start date & time and duration; personal or group hike with attendees (members and guests) |
@@ -40,22 +40,26 @@ many users.
 
 | Term | Meaning |
 |---|---|
-| **User** | A person with an account. |
+| **User** | A person with an account. Required: e-mail and name/nickname. Optional: country, city. No other personal data is collected. Avatar support is planned for later. |
 | **Group** | A set of members (users) and guests. Every group has ≥ 1 admin. |
 | **Admin** | A group member with management rights. The creator is the first admin; there can be several. |
-| **Guest** | A named person in a group without an account. Can attend group hikes; cannot log in. |
-| **Trail** | A route with a name, distance and elevation gain, optionally a map geometry. Identified internally by an ID; the name is unique within its scope (public trails / a user's private trails / a group's trails). |
+| **Guest** | A person in a group identified only by a nickname, without an account. Can attend group hikes; cannot log in. A guest is never linked to a user account, even if that person signs up later. |
+| **Trail** | A route with a name, distance and elevation gain, optionally a map geometry. Identified internally by an ID; the name is unique within its scope (public trails / a user's private trails / a group's trails). A trail is always owned by its creator; group visibility only shares it with a group. Trails are never deleted, only archived. |
 | **Hike** | One completed walk of a trail: start date & time + duration. A *personal hike* belongs to one user; a *group hike* belongs to a group and lists its attendees. |
 
 ## 4. Visibility and permissions
 
 ### Trails
 
-| Visibility | Who can see | Who can edit / delete |
+| Visibility | Who can see | Who can edit / archive |
 |---|---|---|
 | Public | Everyone (all users) | Creator only |
 | Private | Owner only | Owner |
 | Group | Members of that group | Creator and group admins *(assumption)* |
+
+Trails cannot be deleted, only **archived**. An archived trail is hidden from
+browsing and cannot be chosen for new hikes, but existing hikes keep showing it
+and it still counts in statistics. The creator can unarchive it.
 
 ### Groups
 
@@ -67,7 +71,7 @@ many users.
 | Invite by email | Admins |
 | Request to join a public group | Any user; admins approve or reject |
 | Promote / demote admins, remove members | Admins (a group always keeps ≥ 1 admin) |
-| Delete group | Admins |
+| Delete group | Admins. Group hikes remain in the personal statistics of the attending users (no longer linked to a group); guests are removed. Trails are not owned by groups, so they remain with their creators — trails shared with the deleted group become private to their creator *(assumption)*. |
 | Manage guests | Admins; any member can add a new guest while recording a hike *(assumption)* |
 | Leave group | Any member (the last admin must first appoint another admin or delete the group) |
 
@@ -109,6 +113,4 @@ Distance and elevation come from the trail; time comes from the hike.
 
 ## 7. Open questions
 
-- Can a trail be deleted when hikes (possibly by other users) reference it? Proposal: no — it can only be archived/hidden.
 - When a public group's hikes are visible to everyone, which details are public (attendee names, stats)?
-- Does a guest need to be linked to a user account if that guest later signs up?

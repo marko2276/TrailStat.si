@@ -37,26 +37,34 @@
 ## Data model (first draft)
 
 ```
-User(id, oidc_subject, display_name, email, locale, created_at)
+User(id, oidc_subject, email, display_name, country?, city?, avatar_url?, locale, created_at)
+  -- avatar_url reserved for future avatar support (nullable, unused in MVP)
 
 Group(id, name, description, visibility[public|private], created_by, created_at)
 GroupMembership(group_id, user_id, role[admin|member], joined_at)
-GroupGuest(id, group_id, name, created_by)
+GroupGuest(id, group_id, nickname, created_by)   -- never linked to a User
 GroupInvitation(id, group_id, email, token, invited_by, status, expires_at)
 JoinRequest(id, group_id, user_id, status, created_at)
 
 Trail(id, name, description, visibility[public|private|group],
       owner_user_id, group_id?, source[osm|manual], osm_relation_id?,
       distance_m, elevation_gain_m, elevation_loss_m?, geometry?, elevation_profile?,
-      created_at, updated_at)
+      archived_at?, created_at, updated_at)
   -- unique(name) within scope: public | (owner, private) | (group, group)
+  -- trails are never deleted, only archived (archived_at set)
+  -- owned by a user; group_id only shares it with a group
 
-Hike(id, trail_id, group_id?, recorded_by, start_at (timestamptz), duration_s, notes, created_at)
+Hike(id, trail_id, group_id? (ON DELETE SET NULL), recorded_by, start_at (timestamptz), duration_s, notes, created_at)
 HikeAttendee(hike_id, user_id? | guest_id?)
 ```
 
 A personal hike has no `group_id` and a single attendee (the user). Personal
 statistics aggregate every hike where the user is an attendee.
+
+When a group is deleted: its hikes keep existing with `group_id = NULL` and
+their user attendees (so they stay in personal statistics); guest attendees
+and the group's guests are removed; trails shared with the group become
+private to their owner.
 
 ## Deployment
 
