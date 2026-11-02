@@ -13,7 +13,7 @@
                  │                                                  │
                  │ backend ──► PostgreSQL + PostGIS  (own volume)   │
                  │         ──► Overpass API          (OSM import)   │
-                 │         ──► elevation service     (Copernicus DEM)│
+                 │         ──► DEM files (read-only) (Copernicus DEM)│
                  │         ──► SMTP (EU provider)    (invite e-mails)│
                  └──────────────── docker compose ──────────────────┘
 ```
@@ -30,7 +30,7 @@
 | Database | PostgreSQL 16 + PostGIS | Separate container with named volume. Trail geometries stored as `LineString` (SRID 4326). |
 | Identity | Zitadel (self-hosted) | E-mail + password, passkeys, MFA. Standard OIDC, so the provider is swappable. |
 | OSM import | Overpass API | Query hiking route relations (`route=hiking`), assemble geometry, store OSM relation ID. Self-host Overpass if volume grows. |
-| Elevation | Open Topo Data (self-hosted) with Copernicus GLO-30 DEM | Computes elevation gain/loss and profile for trails with geometry. Start with a Slovenia/Alps extract. |
+| Elevation | Copernicus GLO-30 DEM GeoTIFFs read by the backend with `rasterio` | No separate service. Files are mounted read-only into the backend container (start with Slovenia/Alps, a few hundred MB). Sampled once per trail import to compute elevation gain/loss and the profile. |
 | E-mail | SMTP via EU provider | Group invitations, join-request notifications. |
 | Reverse proxy | Caddy | Automatic Let's Encrypt certificates. |
 
