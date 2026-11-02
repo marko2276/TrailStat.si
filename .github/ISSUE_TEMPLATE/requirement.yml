@@ -1,0 +1,34 @@
+name: Requirement
+description: A user-facing requirement or user story
+title: "[REQ] "
+labels: ["type:requirement"]
+body:
+  - type: textarea
+    id: story
+    attributes:
+      label: User story
+      description: As a <role>, I want <capability>, so that <benefit>.
+      placeholder: As a hiker, I want to ..., so that ...
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Testable conditions that must hold for this to be done.
+      value: |
+        - [ ] 
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority (MoSCoW)
+      options: ["Must", "Should", "Could", "Won't (this time)"]
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Open questions, assumptions, links, mock-ups.
