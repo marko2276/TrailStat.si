@@ -66,7 +66,7 @@ and it still counts in statistics. The creator can unarchive it.
 | Action | Who |
 |---|---|
 | Create a group | Any user (becomes admin) |
-| See a public group | All users |
+| See a public group | All users see only the group's name and summary totals (number of hikes, distance, elevation gain, duration). Members, hikes and attendees are visible to members only. |
 | See a private group | Members only |
 | Invite by email | Admins |
 | Request to join a public group | Any user; admins approve or reject |
@@ -94,7 +94,7 @@ they belong to (that group's hikes):
 - Total distance, total elevation gain
 - Total and average duration
 - Filter by day, month and year
-- Group view: breakdown per attendee (members and guests)
+- Group view: breakdown per attendee (members and guests) — members only; non-members of a public group see summary totals only
 
 Distance and elevation come from the trail; time comes from the hike.
 
@@ -113,4 +113,4 @@ Distance and elevation come from the trail; time comes from the hike.
 
 ## 7. Open questions
 
-- When a public group's hikes are visible to everyone, which details are public (attendee names, stats)?
+None at the moment.
