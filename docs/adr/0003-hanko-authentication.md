@@ -10,8 +10,9 @@ In production all data must stay in the EU without US big-tech providers.
 During development a free hosted plan is preferred, so there is nothing to
 operate yet. Hanko, Zitadel, Keycloak, Authentik and Ory were considered.
 
-Passkeys are bound to the domain users sign in on, so moving between hosting
-options is only painless if that domain stays the same.
+Passkeys are bound to a relying party ID, which must match the domain of the
+page where the user signs in. With embedded login components that is the app's
+own domain, not the authentication API's domain.
 
 ## Decision
 
@@ -29,12 +30,17 @@ Integration:
 - The backend validates Hanko session tokens (JWT) against Hanko's public
   keys (JWKS endpoint) and creates the local user on first login, keyed by
   the Hanko user ID. The backend never sees passwords.
+- The passkey relying party ID is `trailstat.si`. It does not change when Hanko
+  moves from cloud to self-hosted, provided the stored credentials are migrated.
+- The custom domain `auth.trailstat.si` keeps the API URL stable across that move
+  and keeps it on the same site as the app, for session cookies.
+- Local development uses a second Hanko project configured for `localhost`,
+  because passkeys for `trailstat.si` cannot be used on `localhost`.
 - Login methods: passkeys, e-mail + password and e-mail passcodes. No
   Google/Apple/Microsoft social login.
 
 Zitadel was not chosen: its free cloud plan is much smaller, custom
-domains are not free (so passkeys would break when moving to self-hosting),
-and its organisations and roles are not needed, because groups and admin
+domains are not free, and its organisations and roles are not needed, because groups and admin
 roles live in TrailStat's own database.
 
 ## Consequences
