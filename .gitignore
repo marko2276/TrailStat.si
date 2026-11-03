@@ -25,3 +25,6 @@ dist/
 # Elevation data (large downloads, see docs/development.md)
 data/dem/*
 !data/dem/.gitkeep
+
+# Database backups
+backups/

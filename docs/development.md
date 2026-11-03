@@ -99,3 +99,21 @@ forbidden case fails: every permission needs a test with the wrong user.
 
 **Frontend tests**: `render` from `src/test/render.tsx` and `mockApi` from `src/test/mockApi.ts`.
 Mock `../../auth/hanko` in tests that use the API, as the existing ones do.
+
+## Backups
+
+```sh
+scripts/backup.sh                                # to ./backups, keeping 30 days
+scripts/restore.sh backups/trailstat-<time>.dump # replaces the database; asks first
+scripts/test-backup.sh                           # proves the full cycle on a throwaway database
+```
+
+Configure with `BACKUP_DIR`, `BACKUP_KEEP_DAYS` and `BACKUP_REMOTE` (an rsync target). A nightly
+off-site backup in the server's crontab, where `/srv/trailstat` is the checkout:
+
+```
+30 3 * * * BACKUP_REMOTE=u123@u123.your-storagebox.de:trailstat /srv/trailstat/scripts/backup.sh
+```
+
+Dumps contain personal data. Keep them private, in the EU, and test a restore regularly.
+Deleted accounts remain in old dumps until they age out, which the privacy policy must state.
