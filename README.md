@@ -9,6 +9,7 @@ Available in English and Slovenian. Runs on PC, iOS and Android as an installabl
 - [Product requirements](docs/requirements.md) — vision, scope, permissions, non-functional requirements
 - [Architecture](docs/architecture.md) — components, data model, deployment
 - [Architecture decision records](docs/adr/)
+- [Development setup](docs/development.md)
 
 ## Planning
 
