@@ -1,0 +1,17 @@
+name: Task
+description: Technical work (infrastructure, refactoring, tooling)
+title: "[TASK] "
+labels: ["type:task"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What needs to be done?
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Definition of done
+      value: |
+        - [ ] 
