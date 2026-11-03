@@ -1,5 +1,12 @@
 import { expect, expectNoHorizontalScroll, signedInPage, test, uniqueEmail } from "./helpers";
 
+test("phone runs really use a phone-sized screen", async ({ browser }, testInfo) => {
+  const { page } = await signedInPage(browser, uniqueEmail("size"));
+  const width = page.viewportSize()!.width;
+  if (testInfo.project.name === "phone") expect(width).toBeLessThan(500);
+  else expect(width).toBeGreaterThan(1000);
+});
+
 test("a visitor is sent to sign-in", async ({ page }) => {
   await page.goto("/trails");
   await expect(page).toHaveURL(/\/login$/);
@@ -32,11 +39,13 @@ test("the chosen language follows the user to another device", async ({ browser 
   const email = uniqueEmail("language");
   const first = await signedInPage(browser, email);
   await first.page.goto("/profile");
+  const saved = first.page.waitForResponse(
+    (response) => response.url().endsWith("/api/me") && response.request().method() === "PATCH",
+  );
   await first.page.getByRole("combobox", { name: "Language" }).selectOption("sl");
+  await saved;
   await expect(first.page.getByRole("heading", { name: "Profil" })).toBeVisible();
   await expect(first.page.locator("html")).toHaveAttribute("lang", "sl");
-  // Give the save a moment to reach the server before opening the second device.
-  await first.page.waitForResponse((r) => r.url().endsWith("/api/me")).catch(() => undefined);
 
   const second = await signedInPage(browser, email, { locale: "en-US" });
   await second.page.goto("/profile");
