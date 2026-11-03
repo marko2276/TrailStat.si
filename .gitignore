@@ -21,3 +21,7 @@ dist/
 .vscode/
 .idea/
 .DS_Store
+
+# Elevation data (large downloads, see docs/development.md)
+data/dem/*
+!data/dem/.gitkeep

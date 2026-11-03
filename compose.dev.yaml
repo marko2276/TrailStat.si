@@ -1,0 +1,35 @@
+# Development overrides: live reload, dev dependencies, ports on localhost only.
+services:
+  migrate:
+    build:
+      target: dev
+    volumes:
+      - ./backend:/app
+
+  backend:
+    build:
+      target: dev
+    user: ${UID:-1000}:${GID:-1000}
+    environment:
+      HANKO_API_URL: ${HANKO_API_URL:-${HANKO_TRAILSTAT_SANDBOX_API:-}}
+    volumes:
+      - ./backend:/app
+    ports:
+      - 127.0.0.1:8000:8000
+
+  frontend:
+    build:
+      target: dev
+    environment:
+      API_PROXY_TARGET: http://backend:8000
+      VITE_HANKO_API_URL: ${HANKO_API_URL:-${HANKO_TRAILSTAT_SANDBOX_API:-}}
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      # Must stay 5173: the Hanko sandbox project is configured for this origin.
+      - 127.0.0.1:5173:5173
+
+  # Vite serves the app directly in development.
+  caddy:
+    profiles: ["proxy"]
