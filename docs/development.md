@@ -62,3 +62,40 @@ The app is served by Caddy on http://localhost:8080.
 
 Put Copernicus GLO-30 DEM GeoTIFF files in `data/dem/` (or the directory set by `DEM_DIR`).
 They are mounted read-only into the backend and are not stored in git.
+
+## Run all checks
+
+`./scripts/check.sh` runs every linter and test in containers, against a throwaway database.
+It does not touch the dev stack.
+
+## Code conventions
+
+**Layout.** Each feature owns its files: backend `app/api/<feature>.py` and
+`app/schemas/<feature>.py`; frontend `src/features/<feature>/` and
+`src/locales/<language>/<feature>.json`. What features need from each other is in [`api.md`](api.md).
+
+**Backend**
+
+- Sign-in: take `user: CurrentUser` and `session: DbSession` from `app.auth`.
+- Visibility and permissions: use `app.permissions`. Never repeat those rules in a query. Something
+  the user may not see is a 404; something they may see but not do is a 403.
+- Errors: `raise ApiError(status, "machine_code")`. The frontend translates the code.
+- Lists: return `Page[T]` from `app.schemas.common`.
+- Commit in the endpoint, once the whole action has succeeded.
+- Changing a model needs a migration. `test_models_match_migrations` fails without one.
+
+**Backend tests** use a real database, rolled back after every test. Fixtures in `tests/conftest.py`:
+`client`, `session`, `create_user`, and `auth_headers(user)`. Test the rule, and also that the
+forbidden case fails: every permission needs a test with the wrong user.
+
+**Frontend**
+
+- API calls: `api` and `withQuery` from `src/lib/api.ts`, through React Query.
+- Text: never hard-code it. Use `useTranslation("<feature>")`; every key must exist in all languages,
+  which a test enforces. Backend error codes go under `errors` in the feature's namespace, and
+  are shown by `<ErrorMessage error={error} ns="<feature>" />`.
+- Dates, numbers, distance, elevation and duration: `useFormat()` from `src/lib/format.ts`.
+- Styling: reuse the classes in `src/styles.css`. Layouts must work at phone width.
+
+**Frontend tests**: `render` from `src/test/render.tsx` and `mockApi` from `src/test/mockApi.ts`.
+Mock `../../auth/hanko` in tests that use the API, as the existing ones do.

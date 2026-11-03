@@ -1,0 +1,9 @@
+{
+  "generic": "Prišlo je do napake. Poskusite znova.",
+  "not_authenticated": "Prijavite se.",
+  "invalid_token": "Vaša seja je potekla. Prijavite se znova.",
+  "auth_unavailable": "Prijava trenutno ni na voljo. Poskusite znova pozneje.",
+  "auth_not_configured": "Prijava na tem strežniku ni nastavljena.",
+  "forbidden": "Tega ne smete storiti.",
+  "not_found": "Ta element ne obstaja ali ga ne morete videti."
+}

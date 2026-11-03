@@ -1,0 +1,23 @@
+{
+  "appName": "TrailStat",
+  "loading": "Nalaganje …",
+  "language": "Jezik",
+  "save": "Shrani",
+  "cancel": "Prekliči",
+  "delete": "Izbriši",
+  "edit": "Uredi",
+  "back": "Nazaj",
+  "confirm": "Potrdi",
+  "next": "Naprej",
+  "previous": "Nazaj",
+  "profile": "Profil",
+  "logout": "Odjava",
+  "home": {
+    "welcome": "Pozdravljeni, {{name}}"
+  },
+  "notFound": "Ta stran ne obstaja.",
+  "auth": {
+    "tagline": "Beležite svoje pohode, sami in s svojo skupino.",
+    "unconfigured": "Prijava na tem strežniku ni nastavljena."
+  }
+}

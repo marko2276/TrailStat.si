@@ -1,0 +1,11 @@
+{
+  "title": "Profil",
+  "email": "E-pošta",
+  "displayName": "Ime ali vzdevek",
+  "country": "Država",
+  "city": "Kraj",
+  "notSet": "Ni nastavljeno",
+  "saved": "Profil je shranjen.",
+  "security": "Prijava in varnost",
+  "securityHint": "Upravljajte svoj e-poštni naslov, geslo in ključe za dostop."
+}

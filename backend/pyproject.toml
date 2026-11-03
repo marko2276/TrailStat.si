@@ -7,15 +7,16 @@ dependencies = [
     "alembic>=1.13",
     "fastapi>=0.115",
     "geoalchemy2>=0.15",
+    "httpx>=0.27",
     "psycopg[binary]>=3.2",
     "pydantic-settings>=2.4",
+    "pyjwt[crypto]>=2.9",
     "sqlalchemy>=2.0.30",
     "uvicorn[standard]>=0.30",
 ]
 
 [dependency-groups]
 dev = [
-    "httpx>=0.27",
     "mypy>=1.11",
     "pytest>=8.3",
     "ruff>=0.6",

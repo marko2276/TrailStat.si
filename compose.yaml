@@ -7,6 +7,7 @@ x-backend-environment: &backend-environment
   POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
   POSTGRES_DB: ${POSTGRES_DB:-trailstat}
   HANKO_API_URL: ${HANKO_API_URL:-}
+  HANKO_AUDIENCE: ${HANKO_AUDIENCE:-}
   DEM_DIR: /data/dem
 
 services:
@@ -61,6 +62,8 @@ services:
     build:
       context: ./frontend
       target: prod
+      args:
+        VITE_HANKO_API_URL: ${HANKO_API_URL:-}
     restart: unless-stopped
 
   caddy:

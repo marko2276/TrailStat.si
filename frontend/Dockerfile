@@ -10,6 +10,8 @@ COPY . .
 CMD ["npm", "run", "dev"]
 
 FROM deps AS build
+ARG VITE_HANKO_API_URL
+ENV VITE_HANKO_API_URL=$VITE_HANKO_API_URL
 COPY . .
 RUN npm run build
 

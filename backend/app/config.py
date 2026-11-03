@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     postgres_db: str = "trailstat"
 
     hanko_api_url: str = ""
+    # When set, tokens must carry this audience. In production: the app's domain.
+    hanko_audience: str = ""
     dem_dir: str = "/data/dem"
 
     @property

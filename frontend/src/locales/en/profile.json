@@ -1,0 +1,11 @@
+{
+  "title": "Profile",
+  "email": "E-mail",
+  "displayName": "Name or nickname",
+  "country": "Country",
+  "city": "City",
+  "notSet": "Not set",
+  "saved": "Profile saved.",
+  "security": "Sign-in and security",
+  "securityHint": "Manage your e-mail address, password and passkeys."
+}
