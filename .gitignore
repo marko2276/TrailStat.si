@@ -25,3 +25,10 @@ dist/
 # Elevation data (large downloads, see docs/development.md)
 data/dem/*
 !data/dem/.gitkeep
+
+# End-to-end test output
+e2e/results/
+e2e/playwright-report/
+
+# Claude Code worktrees
+.claude/
