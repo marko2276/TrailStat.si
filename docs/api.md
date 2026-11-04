@@ -40,11 +40,22 @@ start_at, duration_s, notes, attendees: [{user_id, guest_id, name}], can_edit, c
 - `POST /hikes` `{trail_id, start_at, duration_s, notes, group_id, attendee_user_ids, attendee_guest_ids}`
 - `GET|PATCH|DELETE /hikes/{id}`
 
+Only attended hikes are in `GET /hikes`. `PATCH` changes the fields present; attendee lists replace
+that kind of attendee. A hike can't change group. `DELETE` on a hike without a group (personal, or
+its group was deleted) removes the caller's attendance, and the hike once no attendees remain.
+
+Error codes (422): `trail_archived`, `trail_not_visible_to_group`, `attendees_required`,
+`attendee_not_member`, `guest_not_in_group`, `personal_hike_attendees`, `start_at_in_future`,
+`start_at_too_old`.
+
 ## Statistics (`app/api/stats.py`)
 
 `Totals`: `{hike_count, total_distance_m, total_elevation_gain_m, total_duration_s, average_duration_s}`
 
-`start_from` and `start_to` are instants: the browser computes them, so a "day" is the user's local day.
+`average_duration_s` is 0 without hikes and isn't rounded.
+
+`start_from` (inclusive) and `start_to` (exclusive) are instants: the browser computes them, so a
+"day" is the user's local day. They must include a time zone, here and on the hike lists.
 
 - `GET /stats/me?start_from=&start_to=` → `Totals`
 - `GET /stats/groups/{id}/summary` → `Totals`, without filters. Any user who can see the group,
