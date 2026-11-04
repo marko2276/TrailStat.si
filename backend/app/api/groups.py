@@ -34,7 +34,8 @@ from app.models import (
     TrailVisibility,
     User,
 )
-from app.schemas.common import Page
+from app.rate_limit import INVITATION_EMAILS, JOIN_REQUESTS, enforce
+from app.schemas.common import MAX_OFFSET, Page
 from app.schemas.groups import (
     GroupCreate,
     GroupOut,
@@ -656,6 +657,7 @@ def _issue_invitation(
     """Gives out a new token and e-mails it, after the commit. If sending fails, the admin gets
     503 and things are as before: a new invitation is gone, so it can simply be retried, and a
     re-issued one still has its previous link, which the recipient may already have."""
+    enforce(INVITATION_EMAILS, inviter.id)
     token = secrets.token_urlsafe(32)
     token_hash = _hash_token(token)
     previous: dict[str, object] | None = None
@@ -866,6 +868,7 @@ def request_to_join(
     group = permissions.get_visible_group(session, group_id, user)
     if permissions.get_membership(session, group_id, user) is not None:
         raise ApiError(409, "already_member")
+    enforce(JOIN_REQUESTS, user.id)
     request = JoinRequest(group_id=group_id, user_id=user.id, status=JoinRequestStatus.PENDING)
     session.add(request)
     try:

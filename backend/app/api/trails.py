@@ -1,12 +1,14 @@
 import json
+import threading
 import uuid
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Path, Query
 from geoalchemy2 import WKTElement
-from sqlalchemy import func, select
+from sqlalchemy import exists, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, defer
 
@@ -20,7 +22,8 @@ from app.permissions import (
     require_member,
     visible_trails_clause,
 )
-from app.schemas.common import Page
+from app.rate_limit import OSM_REQUESTS, enforce
+from app.schemas.common import MAX_OFFSET, Page
 from app.schemas.trails import (
     MAX_NAME_LENGTH,
     MAX_RELATION_ID,
@@ -55,6 +58,10 @@ router = APIRouter(prefix="/trails", tags=["trails"])
 
 _NAME_INDEXES = {"uq_trails_public_name", "uq_trails_private_name", "uq_trails_group_name"}
 _MEASUREMENTS = ("distance_m", "elevation_gain_m", "highest_point_m")
+# Overpass is a shared public service and answers slowly, so few calls at a time, in this process.
+MAX_CONCURRENT_OVERPASS = 3
+OVERPASS_SLOT_WAIT_S = 2.0
+_overpass_slots = threading.BoundedSemaphore(MAX_CONCURRENT_OVERPASS)
 
 
 def get_overpass_client() -> OverpassClient:
@@ -84,8 +91,9 @@ def _to_detail(session: Session, trail: Trail, user: User) -> TrailDetail:
     owner = session.get(User, trail.owner_user_id) if trail.owner_user_id else None
     group = session.get(Group, trail.group_id) if trail.group_id else None
     geometry = session.scalar(select(func.ST_AsGeoJSON(Trail.geometry)).where(Trail.id == trail.id))
+    summary = _summary_fields(session, trail, user)
     return TrailDetail(
-        **_summary_fields(session, trail, user),
+        **summary,
         can_change_sharing=trail.owner_user_id == user.id,
         owner_name=owner.display_name if owner else None,
         group_name=group.name if group else None,
@@ -135,11 +143,29 @@ def _geojson_line(coords: Sequence[Coord]) -> dict[str, Any]:
     return {"type": "LineString", "coordinates": [list(point) for point in coords]}
 
 
+def _release_connection(session: Session) -> None:
+    """Ends the transaction, which returns its connection to the pool, so that slow outside work
+    can't use up the pool for everyone else. It also expires loaded objects, so reading one
+    afterwards takes a connection again: read what the work needs before calling this."""
+    session.commit()
+
+
+@contextmanager
+def _overpass_slot() -> Iterator[None]:
+    if not _overpass_slots.acquire(timeout=OVERPASS_SLOT_WAIT_S):
+        raise ApiError(503, "osm_unavailable")
+    try:
+        yield
+    finally:
+        _overpass_slots.release()
+
+
 def _fetch_route(
     overpass: OverpassClient, relation_id: int
 ) -> tuple[RouteRelation, AssembledRoute]:
     try:
-        relation = overpass.relation(relation_id)
+        with _overpass_slot():
+            relation = overpass.relation(relation_id)
     except OsmUnavailable as exc:
         raise ApiError(503, "osm_unavailable") from exc
     if relation is None:
@@ -154,6 +180,7 @@ def _fetch_route(
 @router.get("/osm/search", response_model=Page[OsmRouteSummary])
 def search_osm(
     user: CurrentUser,
+    session: DbSession,
     overpass: Overpass,
     q: Annotated[str, Query(max_length=MAX_SEARCH_LENGTH)],
     bbox: Annotated[str | None, Query(description="west,south,east,north in degrees")] = None,
@@ -167,8 +194,11 @@ def search_osm(
             area = parse_bbox(bbox)
         except ValueError as exc:
             raise ApiError(422, "invalid_bbox") from exc
+    enforce(OSM_REQUESTS, user.id)
+    _release_connection(session)
     try:
-        routes = overpass.search(text, area)
+        with _overpass_slot():
+            routes = overpass.search(text, area)
     except OsmUnavailable as exc:
         raise ApiError(503, "osm_unavailable") from exc
     return Page[OsmRouteSummary](
@@ -181,8 +211,10 @@ def search_osm(
 
 @router.get("/osm/{relation_id}", response_model=OsmRoutePreview)
 def preview_osm_route(
-    relation_id: OsmRelationId, user: CurrentUser, overpass: Overpass
+    relation_id: OsmRelationId, user: CurrentUser, session: DbSession, overpass: Overpass
 ) -> OsmRoutePreview:
+    enforce(OSM_REQUESTS, user.id)
+    _release_connection(session)
     relation, route = _fetch_route(overpass, relation_id)
     return OsmRoutePreview(
         relation_id=relation.relation_id,
@@ -199,7 +231,10 @@ def import_osm_route(
     body: OsmImport, user: CurrentUser, session: DbSession, overpass: Overpass
 ) -> TrailDetail:
     # Before contacting Overpass, so that a request that cannot succeed costs the server nothing.
-    group_id = _resolve_group(session, user, body.visibility, body.group_id)
+    _resolve_group(session, user, body.visibility, body.group_id)
+    enforce(OSM_REQUESTS, user.id)
+    user_id = user.id
+    _release_connection(session)
 
     relation, route = _fetch_route(overpass, body.relation_id)
     name = body.name or clean_text(relation.name or "")[:MAX_NAME_LENGTH].strip()
@@ -207,11 +242,16 @@ def import_osm_route(
         raise ApiError(422, "name_required")
 
     elevation = compute_route_elevation(route.coords, get_settings().dem_dir)
+
+    # A connection again. Much can happen during a minute of outside work, so check again.
+    if session.get(User, user_id) is None:
+        raise ApiError(401, "not_authenticated")
+    group_id = _resolve_group(session, user, body.visibility, body.group_id)
     trail = Trail(
         name=name,
         visibility=body.visibility,
         group_id=group_id,
-        owner_user_id=user.id,
+        owner_user_id=user_id,
         source=TrailSource.OSM,
         osm_relation_id=relation.relation_id,
         distance_m=round(route.distance_m),
@@ -237,7 +277,7 @@ def list_trails(
     sort: TrailSort = "name",
     order: SortOrder = "asc",
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
-    offset: Annotated[int, Query(ge=0, le=2**31 - 1)] = 0,
+    offset: Annotated[int, Query(ge=0, le=MAX_OFFSET)] = 0,
 ) -> Page[TrailSummary]:
     conditions = [visible_trails_clause(user)]
     text = clean_text(q) if q else ""

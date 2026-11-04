@@ -95,8 +95,10 @@ low: Triglav (2864 m) is 2801 m at its highest pixel.
 ## OpenStreetMap and maps
 
 `OVERPASS_URL` sets the Overpass server, by default the public `overpass-api.de`. Be gentle with it:
-tests use a mocked transport, and the app never repeats a failed query on its own. OSM data must be
-credited (ODbL), and the map and every imported trail do so.
+tests use a mocked transport, and the app never repeats a failed query on its own. Calls are limited
+to 3 at a time and 20 per user per minute. No database connection is held during them, so a slow
+Overpass can't stall the rest of the API. OSM data must be credited (ODbL), and the map and every
+imported trail do so.
 
 `VITE_MAP_STYLE_URL` sets the MapLibre style, by default OpenFreeMap's `liberty`, which needs no key.
 It is read at build time. Do not use openstreetmap.org's tile servers: their policy forbids it.

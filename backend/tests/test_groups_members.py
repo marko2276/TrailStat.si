@@ -3,14 +3,12 @@
 import threading
 import time
 import uuid
-from collections.abc import Iterator
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, delete, select, text
 from sqlalchemy.orm import Session
 
-from app.db import get_session
 from app.main import app
 from app.models import (
     Group,
@@ -268,19 +266,6 @@ def test_leaving_keeps_past_hikes_attendance_and_trails(
 
 
 # The race: two admins demote each other at once
-
-
-@pytest.fixture
-def real_sessions(test_engine: Engine) -> Iterator[None]:
-    """Every request gets its own connection, with real commits, as in production."""
-
-    def _session() -> Iterator[Session]:
-        with Session(test_engine) as session:
-            yield session
-
-    app.dependency_overrides[get_session] = _session
-    yield
-    app.dependency_overrides.pop(get_session, None)
 
 
 def test_two_admins_demoting_each_other_leaves_one_admin(

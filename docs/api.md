@@ -3,7 +3,11 @@
 Every endpoint is under `/api` and needs `Authorization: Bearer <Hanko token>`. Lists return
 `{items, total, limit, offset}` and take `limit` (default 50, maximum 200) and `offset`.
 Timestamps are ISO 8601 with a time zone. Errors are `{"detail": "<code>"}`; the code is
-translated by the frontend. The full, generated reference is at `/api/docs`.
+translated by the frontend. The full, generated reference is at `/api/docs`, except in production.
+
+429 `rate_limited` means too many attempts by this user: invitation e-mails, created and resent
+together, 20 per hour; join requests 10 per hour; OpenStreetMap calls 20 per minute. The counts are
+per process (`app/rate_limit.py`).
 
 This file lists what features rely on from each other. Change it together with the code.
 
@@ -34,7 +38,8 @@ also the group's admins. Others get 403, or 404 if they cannot see the trail. Tr
 
 Names are unique within a scope, ignoring case, including archived trails: 409 `trail_name_taken`.
 
-OpenStreetMap, through Overpass. A failing, overloaded or slow Overpass gives 503 `osm_unavailable`.
+OpenStreetMap, through Overpass. A failing, overloaded or slow Overpass gives 503 `osm_unavailable`,
+and so do more than 3 calls at a time on this server.
 
 - `GET /trails/osm/search?q=&bbox=west,south,east,north` → page of
   `{relation_id, name, ref, network, start_name, end_name, bbox}`, `route=hiking` relations whose name

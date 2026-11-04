@@ -2,6 +2,8 @@
 
 import json
 import re
+import threading
+import time
 from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
@@ -13,9 +15,10 @@ import pytest
 import rasterio
 from fastapi.testclient import TestClient
 from rasterio.transform import from_origin
-from sqlalchemy import func, select, text
+from sqlalchemy import Engine, func, select, text
 from sqlalchemy.orm import Session
 
+from app.api import trails as trails_api
 from app.api.trails import get_overpass_client
 from app.config import get_settings
 from app.main import app
@@ -35,6 +38,7 @@ from app.services.osm import (
     parse_bbox,
 )
 from tests.conftest import AuthHeaders, CreateUser
+from tests.groups_helpers import make_group
 
 FIXTURES = Path(__file__).parent / "fixtures"
 URL = "http://overpass.test/api/interpreter"
@@ -1186,3 +1190,235 @@ def test_measurements_of_an_imported_trail_cannot_be_edited(
     assert renamed.status_code == 200
     assert renamed.json()["distance_m"] == body["distance_m"]
     assert renamed.json()["source"] == "osm"
+
+
+# Slow outside work must not stall the rest of the API
+
+
+class BlockedOverpass(FakeOverpass):
+    """Doesn't answer until released, like a server that takes its full minute."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.release = threading.Event()
+        self._lock = threading.Lock()
+        self.inside = 0
+
+    def __call__(self, request: httpx.Request) -> httpx.Response:
+        with self._lock:
+            self.inside += 1
+        assert self.release.wait(timeout=30)
+        return super().__call__(request)
+
+
+@pytest.fixture
+def blocked_overpass() -> Iterator[BlockedOverpass]:
+    fake = BlockedOverpass()
+    client = OverpassClient(URL, transport=httpx.MockTransport(fake))
+    app.dependency_overrides[get_overpass_client] = lambda: client
+    yield fake
+    fake.release.set()
+    app.dependency_overrides.pop(get_overpass_client, None)
+
+
+def wait_until(condition: Callable[[], bool], timeout_s: float = 15) -> None:
+    deadline = time.monotonic() + timeout_s
+    while not condition():
+        assert time.monotonic() < deadline, "timed out"
+        time.sleep(0.01)
+
+
+def in_thread(
+    call: Callable[[], httpx.Response], results: list[httpx.Response]
+) -> threading.Thread:
+    thread = threading.Thread(target=lambda: results.append(call()))
+    thread.start()
+    return thread
+
+
+@pytest.mark.parametrize("endpoint", ["search", "preview"])
+def test_no_connection_is_held_while_overpass_answers(
+    test_engine: Engine,
+    real_user: CreateUser,
+    auth_headers: AuthHeaders,
+    blocked_overpass: BlockedOverpass,
+    endpoint: str,
+) -> None:
+    headers = auth_headers(real_user())
+    blocked_overpass.answer(relation())
+    client = TestClient(app)
+    url = {
+        "search": "/api/trails/osm/search?q=Krim",
+        "preview": f"/api/trails/osm/{RELATION_ID}",
+    }[endpoint]
+    results: list[httpx.Response] = []
+    threads = [
+        in_thread(lambda: client.get(url, headers=headers), results)
+        for _ in range(trails_api.MAX_CONCURRENT_OVERPASS)
+    ]
+
+    wait_until(lambda: blocked_overpass.inside == trails_api.MAX_CONCURRENT_OVERPASS)
+
+    assert test_engine.pool.checkedout() == 0  # type: ignore[attr-defined]
+    # And so the rest of the API works, also for the same user.
+    assert client.get("/api/me", headers=headers).status_code == 200
+
+    blocked_overpass.release.set()
+    for thread in threads:
+        thread.join(timeout=30)
+    assert [result.status_code for result in results] == [200] * 3
+
+
+def test_no_connection_is_held_during_an_import(
+    test_engine: Engine,
+    real_user: CreateUser,
+    auth_headers: AuthHeaders,
+    blocked_overpass: BlockedOverpass,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Neither while Overpass answers, nor while the elevation data is read."""
+    user = real_user()
+    headers = auth_headers(user)
+    blocked_overpass.answer(relation())
+    reading = threading.Event()
+    finish_reading = threading.Event()
+
+    def slow_elevation(*_args: Any) -> None:
+        reading.set()
+        assert finish_reading.wait(timeout=30)
+
+    monkeypatch.setattr(trails_api, "compute_route_elevation", slow_elevation)
+    client = TestClient(app)
+    results: list[httpx.Response] = []
+    thread = in_thread(
+        lambda: client.post(
+            "/api/trails/osm/import",
+            headers=headers,
+            json={"relation_id": RELATION_ID, "visibility": "private"},
+        ),
+        results,
+    )
+
+    wait_until(lambda: blocked_overpass.inside == 1)
+    assert test_engine.pool.checkedout() == 0  # type: ignore[attr-defined]
+
+    blocked_overpass.release.set()
+    wait_until(reading.is_set)
+    assert test_engine.pool.checkedout() == 0  # type: ignore[attr-defined]
+
+    finish_reading.set()
+    thread.join(timeout=30)
+    assert results[0].status_code == 201, results[0].text
+    assert results[0].json()["owner_user_id"] == str(user.id)
+    assert results[0].json()["owner_name"] == user.display_name
+
+
+def test_an_import_checks_membership_again_after_the_outside_work(
+    test_engine: Engine,
+    real_user: CreateUser,
+    auth_headers: AuthHeaders,
+    blocked_overpass: BlockedOverpass,
+) -> None:
+    admin, member = real_user(), real_user()
+    with Session(test_engine) as setup:
+        group_id = make_group(setup, admins=[admin], members=[member]).id
+    blocked_overpass.answer(relation())
+    client = TestClient(app)
+    results: list[httpx.Response] = []
+    thread = in_thread(
+        lambda: client.post(
+            "/api/trails/osm/import",
+            headers=auth_headers(member),
+            json={"relation_id": RELATION_ID, "visibility": "group", "group_id": str(group_id)},
+        ),
+        results,
+    )
+    wait_until(lambda: blocked_overpass.inside == 1)
+
+    removed = client.delete(
+        f"/api/groups/{group_id}/members/{member.id}", headers=auth_headers(admin)
+    )
+    assert removed.status_code == 204
+    blocked_overpass.release.set()
+    thread.join(timeout=30)
+
+    assert results[0].status_code == 404
+    with Session(test_engine) as check:
+        assert check.scalar(select(func.count()).select_from(Trail)) == 0
+
+
+def test_too_many_overpass_calls_at_once_are_turned_away(
+    real_user: CreateUser,
+    auth_headers: AuthHeaders,
+    blocked_overpass: BlockedOverpass,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(trails_api, "OVERPASS_SLOT_WAIT_S", 0.05)
+    client = TestClient(app)
+    url = "/api/trails/osm/search?q=Krim"
+    results: list[httpx.Response] = []
+    threads = [
+        in_thread(lambda: client.get(url, headers=auth_headers(real_user())), results)
+        for _ in range(trails_api.MAX_CONCURRENT_OVERPASS)
+    ]
+    wait_until(lambda: blocked_overpass.inside == trails_api.MAX_CONCURRENT_OVERPASS)
+
+    turned_away = client.get(url, headers=auth_headers(real_user()))
+
+    assert (turned_away.status_code, turned_away.json()["detail"]) == (503, "osm_unavailable")
+    assert blocked_overpass.inside == trails_api.MAX_CONCURRENT_OVERPASS
+
+    blocked_overpass.release.set()
+    for thread in threads:
+        thread.join(timeout=30)
+    # The slots are free again, also after a failure.
+    assert client.get(url, headers=auth_headers(real_user())).status_code == 200
+
+
+def test_a_failed_overpass_call_gives_its_slot_back(
+    client: TestClient, create_user: CreateUser, auth_headers: AuthHeaders, overpass: FakeOverpass
+) -> None:
+    headers = auth_headers(create_user())
+    overpass.response = httpx.ConnectError("down")
+    for _ in range(trails_api.MAX_CONCURRENT_OVERPASS + 1):
+        assert client.get("/api/trails/osm/search?q=Krim", headers=headers).status_code == 503
+
+    overpass.answer()
+
+    assert client.get("/api/trails/osm/search?q=Krim", headers=headers).status_code == 200
+
+
+def test_osm_calls_are_limited_per_user_across_endpoints(
+    client: TestClient, create_user: CreateUser, auth_headers: AuthHeaders, overpass: FakeOverpass
+) -> None:
+    headers = auth_headers(create_user())
+    overpass.answer(relation())
+    import_body = {"relation_id": RELATION_ID, "visibility": "private"}
+    for _ in range(9):
+        assert client.get("/api/trails/osm/search?q=Krim", headers=headers).status_code == 200
+    for _ in range(10):
+        assert client.get(f"/api/trails/osm/{RELATION_ID}", headers=headers).status_code == 200
+    imported = client.post("/api/trails/osm/import", headers=headers, json=import_body)
+    assert imported.status_code == 201
+    calls = len(overpass.queries)
+
+    for response in (
+        client.get("/api/trails/osm/search?q=Krim", headers=headers),
+        client.get(f"/api/trails/osm/{RELATION_ID}", headers=headers),
+        client.post("/api/trails/osm/import", headers=headers, json=import_body),
+    ):
+        assert (response.status_code, response.json()["detail"]) == (429, "rate_limited")
+    assert len(overpass.queries) == calls
+
+    other = auth_headers(create_user())
+    assert client.get("/api/trails/osm/search?q=Krim", headers=other).status_code == 200
+
+
+def test_a_search_refused_before_overpass_does_not_count(
+    client: TestClient, create_user: CreateUser, auth_headers: AuthHeaders, overpass: FakeOverpass
+) -> None:
+    headers = auth_headers(create_user())
+    for _ in range(25):
+        assert client.get("/api/trails/osm/search?q=K", headers=headers).status_code == 422
+
+    assert client.get("/api/trails/osm/search?q=Krim", headers=headers).status_code == 200

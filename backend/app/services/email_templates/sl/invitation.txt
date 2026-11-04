@@ -1,7 +1,12 @@
-Subject: $inviter vas vabi v skupino $group na TrailStatu
+Subject: Povabilo v pohodniško skupino na TrailStatu
 Pozdravljeni!
 
-$inviter vas vabi, da se pridružite pohodniški skupini »$group« na TrailStatu.
+Prejeli ste povabilo, da se pridružite pohodniški skupini na TrailStatu.
+
+Ime skupine: »$group«
+Povabilo je poslal uporabnik z imenom: »$inviter«
+
+Ta imena izberejo uporabniki TrailStata in niso sporočilo TrailStata.
 
 Povabilo lahko sprejmete ali zavrnete na tej povezavi:
 $link

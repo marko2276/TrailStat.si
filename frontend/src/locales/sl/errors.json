@@ -5,5 +5,6 @@
   "auth_unavailable": "Prijava trenutno ni na voljo. Poskusite znova pozneje.",
   "auth_not_configured": "Prijava na tem strežniku ni nastavljena.",
   "forbidden": "Tega ne smete storiti.",
-  "not_found": "Ta element ne obstaja ali ga ne morete videti."
+  "not_found": "Ta element ne obstaja ali ga ne morete videti.",
+  "rate_limited": "Preveč poskusov. Počakajte nekaj časa in poskusite znova."
 }
