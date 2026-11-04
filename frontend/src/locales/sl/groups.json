@@ -68,7 +68,7 @@
     "rename": "Preimenuj",
     "remove": "Odstrani",
     "removeConfirm": "Odstrani gosta",
-    "removeWarning": "Želite odstraniti gosta {{name}}? Odstranjen bo tudi kot udeleženec vseh pohodov, na katerih je bil, in iz statistike skupine. Tega ni mogoče razveljaviti."
+    "removeWarning": "Želite odstraniti gosta {{name}}? Odstranjen bo tudi kot udeleženec vseh pohodov, na katerih je bil, in iz statistike skupine. Pohodi, na katerih je bil edini udeleženec, bodo izbrisani. Tega ni mogoče razveljaviti."
   },
   "invitations": {
     "title": "Povabilo po e-pošti",

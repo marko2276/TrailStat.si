@@ -18,6 +18,7 @@ from app.models import (
     GroupMembership,
     GroupRole,
     GroupVisibility,
+    Hike,
     HikeAttendee,
     TrailVisibility,
     User,
@@ -535,6 +536,30 @@ def test_removing_a_guest_removes_their_attendance_but_not_the_hike(
     assert session.get(GroupGuest, guest.id) is None
     attendees = session.scalars(select(HikeAttendee).where(HikeAttendee.hike_id == hike.id)).all()
     assert [attendee.user_id for attendee in attendees] == [admin.id]
+
+
+def test_removing_the_only_attendee_of_a_hike_removes_the_hike_from_the_totals(
+    client: TestClient, session: Session, create_user: CreateUser, auth_headers: AuthHeaders
+) -> None:
+    admin = create_user()
+    group = make_group(session, admins=[admin])
+    guest = make_guest(session, group, "Bob")
+    other_guest = make_guest(session, group, "Ann")
+    trail = make_trail(session, admin, "T", TrailVisibility.GROUP, group)
+    alone = make_hike(session, trail, group, guests=[guest])
+    together = make_hike(session, trail, group, guests=[guest, other_guest])
+    without_them = make_hike(session, trail, group, guests=[other_guest])
+    headers = auth_headers(admin)
+
+    response = client.delete(f"/api/groups/{group.id}/guests/{guest.id}", headers=headers)
+
+    assert response.status_code == 204
+    session.expire_all()
+    assert session.get(Hike, alone.id) is None
+    assert session.get(Hike, together.id) is not None
+    assert session.get(Hike, without_them.id) is not None
+    summary = client.get(f"/api/stats/groups/{group.id}/summary", headers=headers).json()
+    assert summary["hike_count"] == 2
 
 
 def test_a_guest_of_another_group_is_404(

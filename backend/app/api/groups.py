@@ -10,7 +10,7 @@ from email.message import EmailMessage
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, BackgroundTasks, Query
-from sqlalchemy import ColumnElement, delete, exists, func, select, update
+from sqlalchemy import ColumnElement, delete, exists, func, or_, select, update
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -577,7 +577,22 @@ def remove_guest(
     group_id: uuid.UUID, guest_id: uuid.UUID, user: CurrentUser, session: DbSession
 ) -> None:
     permissions.require_admin(session, group_id, user)
-    session.delete(_guest_or_404(session, group_id, guest_id))
+    guest = _guest_or_404(session, group_id, guest_id)
+    # Their attendance goes with them. A hike they alone attended would be left with nobody,
+    # still counting in the group's totals, so it goes too.
+    attended_by_guest = exists().where(
+        HikeAttendee.hike_id == Hike.id, HikeAttendee.guest_id == guest.id
+    )
+    attended_by_others = exists().where(
+        HikeAttendee.hike_id == Hike.id,
+        or_(HikeAttendee.guest_id.is_(None), HikeAttendee.guest_id != guest.id),
+    )
+    session.execute(
+        delete(Hike)
+        .where(Hike.group_id == group_id, attended_by_guest, ~attended_by_others)
+        .execution_options(synchronize_session=False)
+    )
+    session.delete(guest)
     session.commit()
 
 

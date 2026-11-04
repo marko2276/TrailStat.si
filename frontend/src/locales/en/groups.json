@@ -68,7 +68,7 @@
     "rename": "Rename",
     "remove": "Remove",
     "removeConfirm": "Remove guest",
-    "removeWarning": "Remove {{name}}? They will also be removed as an attendee from all hikes they took part in, and from the group's statistics. This cannot be undone."
+    "removeWarning": "Remove {{name}}? They will also be removed as an attendee from all hikes they took part in, and from the group's statistics. Hikes where they were the only attendee are deleted. This cannot be undone."
   },
   "invitations": {
     "title": "Invite by e-mail",
