@@ -7,5 +7,23 @@
   "notSet": "Not set",
   "saved": "Profile saved.",
   "security": "Sign-in and security",
-  "securityHint": "Manage your e-mail address, password and passkeys."
+  "securityHint": "Manage your e-mail address, password and passkeys.",
+  "data": {
+    "title": "Your data",
+    "exportHint": "Download everything stored about you as a file, or delete your account.",
+    "export": "Download my data",
+    "delete": "Delete my account",
+    "deleteIntro": "This deletes your account immediately and cannot be undone:",
+    "deleteProfile": "Your profile and sign-in are deleted.",
+    "deleteHikes": "Hikes only you attended are deleted. Hikes with others stay for them, without your name.",
+    "deleteTrails": "Your private trails are deleted. Public and shared trails stay for others, without your name.",
+    "deleteGroups": "Groups with no one else are deleted. If you are a group's last admin, its longest-standing member takes over.",
+    "confirmLabel": "Type your e-mail address ({{email}}) to confirm",
+    "deleteConfirm": "Delete my account permanently"
+  },
+  "deleted": {
+    "title": "Your account is deleted",
+    "done": "Your data has been removed from TrailStat.",
+    "loginKept": "Your sign-in could not be deleted automatically. Please ask us to remove it, as described on the privacy page."
+  }
 }

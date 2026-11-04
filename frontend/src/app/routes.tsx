@@ -23,6 +23,7 @@ export const appRoutes: RouteObject[] = [
     element: <Layout />,
     children: [
       { path: "login", element: <LoginPage /> },
+      ...profile.publicRoutes,
       {
         element: <RequireAuth />,
         children: [

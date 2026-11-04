@@ -1,0 +1,31 @@
+{
+  "title": "Politika zasebnosti",
+  "controller": {
+    "title": "Kdo je odgovoren",
+    "text": "Storitev TrailStat upravlja Marko Vaupotič kot osebni projekt. Stik: privacy@trailstat.si."
+  },
+  "data": {
+    "title": "Kaj hranimo",
+    "text": "Vaš e-poštni naslov ter ime ali vzdevek; po želji državo in kraj; jezik; poti, pohode in skupine, ki jih ustvarite ali se jim pridružite; ter tehnične dnevnike strežnika. Člani skupine vas lahko zabeležijo kot udeleženca in dodajo goste, ki so označeni samo z vzdevkom."
+  },
+  "why": {
+    "title": "Zakaj jih hranimo",
+    "text": "Da zagotavljamo storitev, za katero ste se prijavili, na podlagi pogodbe z vami, in da jo ohranjamo varno. E-pošto pošiljamo samo za povabila v skupine in prošnje za včlanitev. Ni oglaševanja in ni sledenja."
+  },
+  "sharing": {
+    "title": "Kdo jih lahko vidi",
+    "text": "Člani skupine vidijo imena drug drugega in pohode skupine. Poti so vidne, kot sami izberete. Prijavo upravlja Hanko, nemški ponudnik. Slike zemljevidov prihajajo iz storitve OpenFreeMap, podatki o poteh pa iz storitev OpenStreetMap, ki vidijo vaš internetni naslov, ko jih kontaktira vaš brskalnik ali naš strežnik. Podatkov ne prodajamo."
+  },
+  "where": {
+    "title": "Kje so shranjeni",
+    "text": "Na strežnikih v Evropski uniji."
+  },
+  "keep": {
+    "title": "Kako dolgo jih hranimo",
+    "text": "Dokler ne izbrišete računa. Varnostne kopije z izbrisanimi podatki so odstranjene v 30 dneh."
+  },
+  "rights": {
+    "title": "Vaše pravice",
+    "text": "Na strani s profilom lahko svoje podatke vidite, popravite, prenesete in izbrišete, za vse drugo pa se lahko obrnete na nas. Pritožbo lahko vložite tudi pri organu za varstvo podatkov; v Sloveniji je to Informacijski pooblaščenec."
+  }
+}
