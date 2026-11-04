@@ -32,6 +32,7 @@ class TokenIdentity:
     subject: str
     email: str | None
     raw_token: str
+    email_verified: bool = False
 
 
 @lru_cache
@@ -48,6 +49,11 @@ def _email_from_claims(claims: dict[str, Any]) -> str | None:
     if isinstance(email, dict):
         email = email.get("address")
     return email if isinstance(email, str) and email else None
+
+
+def _email_verified_from_claims(claims: dict[str, Any]) -> bool:
+    email = claims.get("email")
+    return isinstance(email, dict) and email.get("is_verified") is True
 
 
 def decode_token(token: str) -> TokenIdentity:
@@ -72,7 +78,12 @@ def decode_token(token: str) -> TokenIdentity:
         )
     except jwt.InvalidTokenError as exc:
         raise ApiError(status.HTTP_401_UNAUTHORIZED, "invalid_token") from exc
-    return TokenIdentity(claims["sub"], _email_from_claims(claims), token)
+    return TokenIdentity(
+        claims["sub"],
+        _email_from_claims(claims),
+        token,
+        email_verified=_email_verified_from_claims(claims),
+    )
 
 
 def fetch_email_from_hanko(identity: TokenIdentity) -> str:
@@ -125,5 +136,17 @@ def get_current_user(
     return get_or_create_user(session, decode_token(credentials.credentials))
 
 
+def get_verified_email(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+) -> str | None:
+    """The address Hanko says this user has proven to own. `User.email` is not enough for
+    decisions that depend on owning an address: it is copied from the token unconditionally."""
+    if credentials is None:
+        raise ApiError(status.HTTP_401_UNAUTHORIZED, "not_authenticated")
+    identity = decode_token(credentials.credentials)
+    return identity.email if identity.email_verified else None
+
+
 CurrentUser = Annotated[User, Depends(get_current_user)]
+VerifiedEmail = Annotated[str | None, Depends(get_verified_email)]
 DbSession = Annotated[Session, Depends(get_session)]

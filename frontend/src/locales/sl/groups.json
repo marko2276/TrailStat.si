@@ -1,3 +1,145 @@
 {
-  "title": "Skupine"
+  "title": "Skupine",
+  "create": "Ustvari skupino",
+  "mine": "Moje skupine",
+  "mineEmpty": "Niste še v nobeni skupini. Ustvarite jo ali prosite za včlanitev v javno skupino.",
+  "public": "Javne skupine",
+  "publicEmpty": "Javnih skupin še ni.",
+  "publicNoMatch": "Nobena javna skupina ne ustreza iskanju.",
+  "search": "Išči",
+  "searchLabel": "Iskanje po imenu",
+  "backToGroups": "Vse skupine",
+  "memberCount": "Člani: {{count}}",
+  "settings": "Nastavitve skupine",
+  "visibility": {
+    "public": "Javna",
+    "private": "Zasebna"
+  },
+  "role": {
+    "admin": "Skrbnik",
+    "member": "Član"
+  },
+  "form": {
+    "name": "Ime",
+    "description": "Opis",
+    "visibility": "Vidnost",
+    "visibilityHint": {
+      "public": "Skupino lahko vsak najde, vidi njeno ime in skupne podatke ter prosi za včlanitev. Člani in pohodi so vidni samo članom.",
+      "private": "Skupino vidijo samo člani. Vanjo se pride s povabilom."
+    }
+  },
+  "activity": {
+    "title": "Pohodi in statistika",
+    "hikes": "Pohodi skupine",
+    "stats": "Statistika skupine"
+  },
+  "summary": {
+    "title": "Skupni podatki skupine",
+    "unavailable": "Skupni podatki trenutno niso na voljo.",
+    "hikes": "Pohodi",
+    "distance": "Razdalja",
+    "elevation": "Vzpon",
+    "duration": "Trajanje"
+  },
+  "join": {
+    "title": "Včlanitev v skupino",
+    "request": "Prosi za včlanitev",
+    "again": "Prosi znova",
+    "cancel": "Prekliči prošnjo",
+    "pending": "Vaša prošnja čaka na odločitev skrbnika.",
+    "rejected": "Vaša prošnja je bila zavrnjena."
+  },
+  "members": {
+    "title": "Člani",
+    "you": "(vi)",
+    "promote": "Imenuj za skrbnika",
+    "demote": "Odvzemi vlogo skrbnika",
+    "remove": "Odstrani",
+    "removeConfirm": "Odstrani iz skupine",
+    "removeWarning": "Želite odstraniti člana {{name}} iz skupine? Pretekli pohodi ostanejo in še naprej je naveden kot udeleženec."
+  },
+  "guests": {
+    "title": "Gostje",
+    "hint": "Osebe brez računa, znane samo po vzdevku. Lahko jih dodate na pohode skupine.",
+    "empty": "Gostov še ni.",
+    "nickname": "Vzdevek",
+    "add": "Vzdevek novega gosta",
+    "addButton": "Dodaj gosta",
+    "rename": "Preimenuj",
+    "remove": "Odstrani",
+    "removeConfirm": "Odstrani gosta",
+    "removeWarning": "Želite odstraniti gosta {{name}}? Odstranjen bo tudi kot udeleženec vseh pohodov, na katerih je bil, in iz statistike skupine. Tega ni mogoče razveljaviti."
+  },
+  "invitations": {
+    "title": "Povabilo po e-pošti",
+    "email": "E-poštni naslov",
+    "send": "Pošlji povabilo",
+    "sent": "Povabilo je bilo poslano na {{email}}.",
+    "pending": "Odprta povabila",
+    "none": "Ni odprtih povabil.",
+    "expires": "Velja do {{date}}",
+    "expired": "Poteklo",
+    "resend": "Pošlji znova",
+    "resent": "Nova povezava je bila poslana. Prejšnja ne deluje več.",
+    "revoke": "Prekliči",
+    "revokeConfirm": "Prekliči povabilo",
+    "revokeWarning": "Povezava v e-poštnem sporočilu ne bo več delovala."
+  },
+  "requests": {
+    "title": "Prošnje za včlanitev",
+    "none": "Nobena prošnja ne čaka.",
+    "approve": "Odobri",
+    "reject": "Zavrni"
+  },
+  "danger": {
+    "title": "Izstop ali izbris",
+    "leave": "Zapusti skupino",
+    "leaveConfirm": "Da, zapusti",
+    "leaveWarningPublic": "Videli boste samo še ime in skupne podatke skupine, za vrnitev pa boste morali znova prositi za včlanitev. Vaši pretekli pohodi in vaše poti ostanejo.",
+    "leaveWarningPrivate": "Skupine ne boste več videli, vrnete se lahko samo z novim povabilom. Vaši pretekli pohodi in vaše poti ostanejo.",
+    "delete": "Izbriši skupino",
+    "deleteConfirm": "Da, izbriši skupino",
+    "deleteIntro": "Želite izbrisati skupino {{name}}? Kaj se bo zgodilo:",
+    "deleteHikes": "Pohodi skupine ostanejo v osebni statistiki uporabnikov, ki so se jih udeležili, vendar niso več povezani s skupino. Pohodi, ki so se jih udeležili samo gostje, bodo izbrisani.",
+    "deleteGuests": "Vsi gostje bodo odstranjeni, skupaj z njihovo udeležbo na pohodih.",
+    "deleteTrails": "Poti, deljene s skupino, ostanejo njihovim ustvarjalcem in postanejo zasebne. Če ima ustvarjalec že zasebno pot z enakim imenom, se imenu doda ime skupine.",
+    "deleteMembers": "Člani ter odprta povabila in prošnje bodo odstranjeni.",
+    "deleteFinal": "Tega ni mogoče razveljaviti."
+  },
+  "invitation": {
+    "title": "Povabilo v skupino",
+    "fromInviter": "{{inviter}} vas vabi, da se pridružite skupini {{group}}.",
+    "toGroup": "Vabljeni ste, da se pridružite skupini {{group}}.",
+    "validUntil": "Povabilo velja do {{date}}.",
+    "accept": "Sprejmi",
+    "decline": "Zavrni",
+    "declined": "Povabilo ste zavrnili.",
+    "wrongAccount": "To povabilo je bilo poslano na drug e-poštni naslov ali pa vaš naslov še ni potrjen. Prijavite se z naslovom, na katerega ste ga prejeli.",
+    "signedInAs": "Prijavljeni ste kot {{email}}.",
+    "switchAccount": "Prijava z drugim računom"
+  },
+  "errors": {
+    "not_found": "Ta skupina ne obstaja ali je ne morete videti.",
+    "group_name_required": "Vnesite ime skupine.",
+    "group_name_too_long": "Ime je predolgo. Lahko ima največ 100 znakov.",
+    "description_too_long": "Opis je predolg. Lahko ima največ 2000 znakov.",
+    "visibility_required": "Izberite, kdo lahko vidi skupino.",
+    "guest_name_required": "Vnesite vzdevek gosta.",
+    "guest_name_too_long": "Vzdevek je predolg. Lahko ima največ 100 znakov.",
+    "guest_name_taken": "Ta skupina že ima gosta s tem vzdevkom.",
+    "invalid_email": "To ni veljaven e-poštni naslov.",
+    "already_member": "Ta oseba je že član skupine.",
+    "invitation_pending": "Povabilo za ta naslov že čaka. Znova ga lahko pošljete s spodnjega seznama.",
+    "invitation_not_pending": "To povabilo ni več odprto.",
+    "invitation_not_found": "Ta povezava do povabila ni veljavna. Če ste prejeli novejše sporočilo, uporabite povezavo iz njega.",
+    "invitation_expired": "To povabilo je poteklo. Prosite skrbnika skupine, naj pošlje novo.",
+    "invitation_revoked": "To povabilo je bilo preklicano.",
+    "invitation_already_used": "To povabilo je že bilo uporabljeno.",
+    "invitation_email_mismatch": "To povabilo je bilo poslano na drug e-poštni naslov. Prijavite se z naslovom, na katerega ste ga prejeli.",
+    "email_failed": "E-poštnega sporočila ni bilo mogoče poslati, zato se ni nič spremenilo. Poskusite znova pozneje.",
+    "join_request_pending": "Za včlanitev v to skupino ste že prosili.",
+    "join_request_not_pending": "Ta prošnja je že obravnavana.",
+    "last_admin": "Skupina mora imeti vsaj enega skrbnika. Najprej imenujte drugega skrbnika ali izbrišite skupino.",
+    "group_changed": "Skupina se je med brisanjem spremenila. Poskusite znova."
+  }
 }

@@ -29,6 +29,17 @@ An archived trail stays readable by id, for hikes that reference it.
 - `GET /groups/{id}/members` → members only: `{items: [{user_id, display_name, role}]}`, not paginated
 - `GET /groups/{id}/guests` → members only: `{items: [{id, nickname}]}`, not paginated
 - `POST /groups/{id}/guests` `{nickname}` → `{id, nickname}`. Any member (used while recording a hike).
+  409 `guest_name_taken`; the comparison ignores case.
+
+The rest of the groups API is used only by the groups feature:
+
+- `POST /groups`, `PATCH|DELETE /groups/{id}`
+- `PATCH|DELETE /groups/{id}/members/{user_id}`, `POST /groups/{id}/leave` (409 `last_admin`)
+- `PATCH|DELETE /groups/{id}/guests/{guest_id}`
+- `GET|POST /groups/{id}/invitations`, `POST .../{invitation_id}/resend`, `DELETE .../{invitation_id}`
+- `GET /groups/invitations/{token}`, `POST .../{token}/accept`, `POST .../{token}/decline`
+- `GET|POST /groups/{id}/join-requests`, `POST .../{request_id}/approve`, `POST .../{request_id}/reject`,
+  `GET|DELETE /groups/{id}/join-requests/mine`
 
 ## Hikes (`app/api/hikes.py`)
 

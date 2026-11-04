@@ -17,6 +17,16 @@ class Settings(BaseSettings):
     hanko_audience: str = ""
     dem_dir: str = "/data/dem"
 
+    # Without an SMTP host, sending fails and invitations report `email_failed`.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: SecretStr = SecretStr("")
+    smtp_from: str = "TrailStat <noreply@trailstat.si>"
+    smtp_starttls: bool = True
+    # The address of the app, for links in e-mails.
+    app_url: str = "http://localhost:5173"
+
     @property
     def database_url(self) -> URL:
         # URL.create escapes special characters in the password.
