@@ -23,6 +23,7 @@ services:
     environment:
       API_PROXY_TARGET: http://backend:8000
       VITE_HANKO_API_URL: ${HANKO_API_URL:-${HANKO_TRAILSTAT_SANDBOX_API:-}}
+      VITE_MAP_STYLE_URL: ${VITE_MAP_STYLE_URL:-}
     volumes:
       - ./frontend:/app
       - /app/node_modules

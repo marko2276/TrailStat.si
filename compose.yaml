@@ -9,6 +9,7 @@ x-backend-environment: &backend-environment
   HANKO_API_URL: ${HANKO_API_URL:-}
   HANKO_AUDIENCE: ${HANKO_AUDIENCE:-}
   DEM_DIR: /data/dem
+  OVERPASS_URL: ${OVERPASS_URL:-https://overpass-api.de/api/interpreter}
 
 services:
   db:
@@ -64,6 +65,7 @@ services:
       target: prod
       args:
         VITE_HANKO_API_URL: ${HANKO_API_URL:-}
+        VITE_MAP_STYLE_URL: ${VITE_MAP_STYLE_URL:-}
     restart: unless-stopped
 
   caddy:

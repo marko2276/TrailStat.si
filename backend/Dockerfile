@@ -3,6 +3,9 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     UV_PROJECT_ENVIRONMENT=/opt/venv \
     PATH="/opt/venv/bin:$PATH"
+# rasterio's wheel bundles GDAL but links against the system's expat.
+RUN apt-get update && apt-get install -y --no-install-recommends libexpat1 \
+    && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir --root-user-action=ignore --disable-pip-version-check uv==0.8.22
 WORKDIR /app
 COPY pyproject.toml uv.lock ./

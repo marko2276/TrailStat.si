@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     # When set, tokens must carry this audience. In production: the app's domain.
     hanko_audience: str = ""
     dem_dir: str = "/data/dem"
+    overpass_url: str = "https://overpass-api.de/api/interpreter"
 
     @property
     def database_url(self) -> URL:
