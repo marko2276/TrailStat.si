@@ -2,6 +2,8 @@
 name: trailstat
 
 x-backend-environment: &backend-environment
+  # With "production" the backend refuses to start without its settings: see docs/development.md.
+  ENVIRONMENT: ${ENVIRONMENT:-development}
   POSTGRES_HOST: db
   POSTGRES_USER: ${POSTGRES_USER:-trailstat}
   POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}

@@ -11,6 +11,7 @@ services:
       target: dev
     user: ${UID:-1000}:${GID:-1000}
     environment:
+      ENVIRONMENT: development
       HANKO_API_URL: ${HANKO_API_URL:-${HANKO_TRAILSTAT_SANDBOX_API:-}}
       # All e-mail goes to Mailpit: nothing leaves the machine.
       SMTP_HOST: mailpit
