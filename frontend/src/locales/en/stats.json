@@ -1,3 +1,35 @@
 {
-  "title": "Statistics"
+  "title": "Statistics",
+  "thisYear": "This year",
+  "subject": "Show statistics for",
+  "me": "Me",
+  "group": "Group",
+  "period": "Period",
+  "periods": {
+    "all": "All time",
+    "day": "Day",
+    "month": "Month",
+    "year": "Year"
+  },
+  "day": "Day",
+  "month": "Month",
+  "year": "Year",
+  "hikeCount": "Hikes",
+  "totalDistance": "Total distance",
+  "totalElevation": "Total elevation gain",
+  "totalDuration": "Total time",
+  "averageDuration": "Average time",
+  "hikes": "Hikes in this period",
+  "breakdown": "By attendee",
+  "attendee": "Attendee",
+  "guest": "Guest",
+  "columns": {
+    "hikes": "Hikes",
+    "distance": "Distance",
+    "elevation": "Elevation gain",
+    "duration": "Time",
+    "average": "Average"
+  },
+  "empty": "No hikes in this period.",
+  "summaryOnly": "You aren't a member of this group, so you see only its totals."
 }
