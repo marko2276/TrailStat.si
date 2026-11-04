@@ -66,7 +66,11 @@ The rest of the groups API is used only by the groups feature:
 - `PATCH|DELETE /groups/{id}/members/{user_id}`, `POST /groups/{id}/leave` (409 `last_admin`)
 - `PATCH|DELETE /groups/{id}/guests/{guest_id}`
 - `GET|POST /groups/{id}/invitations`, `POST .../{invitation_id}/resend`, `DELETE .../{invitation_id}`
-- `GET /groups/invitations/{token}`, `POST .../{token}/accept`, `POST .../{token}/decline`
+- `GET /groups/invitations/{token}`, `POST .../{token}/accept`, `POST .../{token}/decline`.
+  The view has `email_matches`, and group details only if it is true. `email_verified` is false if the
+  address is the invited one but not verified yet: accepting gives 403 `invitation_email_mismatch`.
+  Approving a join request marks pending invitations of that address to the group as accepted, and
+  removing a member revokes them, so an old link can't bring a removed member back.
 - `GET|POST /groups/{id}/join-requests`, `POST .../{request_id}/approve`, `POST .../{request_id}/reject`,
   `GET|DELETE /groups/{id}/join-requests/mine`
 

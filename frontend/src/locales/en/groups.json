@@ -114,7 +114,8 @@
     "accept": "Accept",
     "decline": "Decline",
     "declined": "You declined the invitation.",
-    "wrongAccount": "This invitation was sent to a different e-mail address, or your address has not been verified. Sign in with the address that received it.",
+    "wrongAccount": "This invitation was sent to a different e-mail address. Sign in with the address that received it.",
+    "verifyFirst": "Verify this e-mail address first, then open this link again. It has not been verified yet, so the invitation can't be accepted.",
     "signedInAs": "You are signed in as {{email}}.",
     "switchAccount": "Sign in with another account"
   },

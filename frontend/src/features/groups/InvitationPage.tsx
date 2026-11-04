@@ -9,14 +9,14 @@ import { useMe } from "../profile/api";
 import { useAcceptInvitation, useDeclineInvitation, useInvitationView } from "./api";
 import type { InvitationView } from "./api";
 
-function WrongAccount() {
+function CannotAccept({ reason }: { reason: "wrongAccount" | "verifyFirst" }) {
   const { t } = useTranslation("groups");
   const { logout } = useAuth();
   const { data: me } = useMe();
 
   return (
     <>
-      <p role="alert">{t("invitation.wrongAccount")}</p>
+      <p role="alert">{t(`invitation.${reason}`)}</p>
       {me && (
         <p className="muted wrap-anywhere">{t("invitation.signedInAs", { email: me.email })}</p>
       )}
@@ -105,7 +105,7 @@ export function InvitationPage() {
         (data.email_matches ? (
           <Decision token={token} invitation={data} onDeclined={() => setDeclined(true)} />
         ) : (
-          <WrongAccount />
+          <CannotAccept reason={data.email_verified ? "wrongAccount" : "verifyFirst"} />
         ))}
       {(declined || error) && (
         <p>

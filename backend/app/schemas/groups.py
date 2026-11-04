@@ -79,9 +79,12 @@ class InvitationOut(ApiModel):
 
 class InvitationView(BaseModel):
     """What the holder of a link sees. Group details only for the person it was sent to, so a
-    forwarded link does not reveal them."""
+    forwarded link does not reveal them. `email_matches` means the address is the invited one
+    and is verified. `email_verified` is false only if it is the invited one but not verified,
+    so that the page can say what to do."""
 
     email_matches: bool
+    email_verified: bool
     group_id: uuid.UUID | None
     group_name: str | None
     inviter_name: str | None

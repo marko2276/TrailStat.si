@@ -17,6 +17,7 @@ vi.mock("../../auth/hanko", () => ({
 const url = "/api/groups/invitations/tok";
 const valid = {
   email_matches: true,
+  email_verified: true,
   group_id: "g1",
   group_name: "Hikers",
   inviter_name: "Ana",
@@ -24,6 +25,7 @@ const valid = {
 };
 const mismatch = {
   email_matches: false,
+  email_verified: true,
   group_id: null,
   group_name: null,
   inviter_name: null,
@@ -103,6 +105,17 @@ describe("InvitationPage", () => {
 
     expect((await screen.findByRole("alert")).textContent).toContain("different e-mail address");
     expect(await screen.findByText("You are signed in as me@example.com.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Accept" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Decline" })).toBeNull();
+  });
+
+  it("asks someone with the invited but unverified address to verify it first", async () => {
+    mockApi({ [`GET ${url}`]: { ...mismatch, email_verified: false }, "GET /api/me": me });
+    renderPage();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Verify this e-mail address first");
+    expect(alert.textContent).not.toContain("different e-mail address");
     expect(screen.queryByRole("button", { name: "Accept" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Decline" })).toBeNull();
   });

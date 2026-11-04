@@ -114,7 +114,8 @@
     "accept": "Sprejmi",
     "decline": "Zavrni",
     "declined": "Povabilo ste zavrnili.",
-    "wrongAccount": "To povabilo je bilo poslano na drug e-poštni naslov ali pa vaš naslov še ni potrjen. Prijavite se z naslovom, na katerega ste ga prejeli.",
+    "wrongAccount": "To povabilo je bilo poslano na drug e-poštni naslov. Prijavite se z naslovom, na katerega ste ga prejeli.",
+    "verifyFirst": "Najprej potrdite ta e-poštni naslov, nato znova odprite to povezavo. Naslov še ni potrjen, zato povabila ni mogoče sprejeti.",
     "signedInAs": "Prijavljeni ste kot {{email}}.",
     "switchAccount": "Prijava z drugim računom"
   },

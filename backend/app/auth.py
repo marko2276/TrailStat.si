@@ -136,17 +136,21 @@ def get_current_user(
     return get_or_create_user(session, decode_token(credentials.credentials))
 
 
-def get_verified_email(
+def get_token_claims(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
-) -> str | None:
-    """The address Hanko says this user has proven to own. `User.email` is not enough for
-    decisions that depend on owning an address: it is copied from the token unconditionally."""
+) -> TokenIdentity:
     if credentials is None:
         raise ApiError(status.HTTP_401_UNAUTHORIZED, "not_authenticated")
-    identity = decode_token(credentials.credentials)
+    return decode_token(credentials.credentials)
+
+
+def get_verified_email(identity: Annotated[TokenIdentity, Depends(get_token_claims)]) -> str | None:
+    """The address Hanko says this user has proven to own. `User.email` is not enough for
+    decisions that depend on owning an address: it is copied from the token unconditionally."""
     return identity.email if identity.email_verified else None
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+TokenClaims = Annotated[TokenIdentity, Depends(get_token_claims)]
 VerifiedEmail = Annotated[str | None, Depends(get_verified_email)]
 DbSession = Annotated[Session, Depends(get_session)]

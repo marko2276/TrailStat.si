@@ -15,7 +15,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app import permissions
-from app.auth import CurrentUser, DbSession, VerifiedEmail
+from app.auth import CurrentUser, DbSession, TokenClaims, VerifiedEmail
 from app.config import get_settings
 from app.errors import ApiError
 from app.models import (
@@ -202,17 +202,19 @@ def _require_usable(invitation: GroupInvitation) -> None:
         raise ApiError(410, "invitation_expired")
 
 
-def _email_matches(invitation: GroupInvitation, verified_email: str | None) -> bool:
-    return verified_email is not None and verified_email.strip().lower() == invitation.email.lower()
+def _email_matches(invitation: GroupInvitation, email: str | None) -> bool:
+    return email is not None and email.strip().lower() == invitation.email.lower()
 
 
 @router.get("/invitations/{token}", response_model=InvitationView)
-def view_invitation(token: str, verified_email: VerifiedEmail, session: DbSession) -> object:
+def view_invitation(token: str, claims: TokenClaims, session: DbSession) -> object:
     invitation = _invitation_by_token(session, token)
     _require_usable(invitation)
-    if not _email_matches(invitation, verified_email):
+    address_matches = _email_matches(invitation, claims.email)
+    if not (address_matches and claims.email_verified):
         return InvitationView(
             email_matches=False,
+            email_verified=not address_matches,
             group_id=None,
             group_name=None,
             inviter_name=None,
@@ -222,6 +224,7 @@ def view_invitation(token: str, verified_email: VerifiedEmail, session: DbSessio
     inviter = session.get(User, invitation.invited_by) if invitation.invited_by else None
     return InvitationView(
         email_matches=True,
+        email_verified=True,
         group_id=group.id,
         group_name=group.name,
         inviter_name=inviter.display_name if inviter else None,
@@ -464,6 +467,20 @@ def list_members(group_id: uuid.UUID, user: CurrentUser, session: DbSession) -> 
     )
 
 
+def _settle_pending_invitations(
+    session: Session, group_id: uuid.UUID, user: User, status: InvitationStatus
+) -> None:
+    session.execute(
+        update(GroupInvitation)
+        .where(
+            GroupInvitation.group_id == group_id,
+            GroupInvitation.status == InvitationStatus.PENDING,
+            func.lower(GroupInvitation.email) == user.email.lower(),
+        )
+        .values(status=status)
+    )
+
+
 def _member_or_404(session: Session, group_id: uuid.UUID, user_id: uuid.UUID) -> GroupMembership:
     membership = session.get(GroupMembership, (group_id, user_id))
     if membership is None:
@@ -502,6 +519,10 @@ def remove_member(
     membership = _member_or_404(session, group_id, user_id)
     _forbid_losing_last_admin(session, membership)
     session.delete(membership)
+    # An old invitation must not let someone the admins removed back in.
+    _settle_pending_invitations(
+        session, group_id, session.get_one(User, user_id), InvitationStatus.REVOKED
+    )
     session.commit()
 
 
@@ -959,6 +980,8 @@ def approve_join_request(
     if permissions.get_membership(session, group_id, requester) is None:
         session.add(GroupMembership(group_id=group_id, user_id=requester.id, role=GroupRole.MEMBER))
     request.status = JoinRequestStatus.APPROVED
+    # They are in now, so a link sent earlier has served its purpose.
+    _settle_pending_invitations(session, group_id, requester, InvitationStatus.ACCEPTED)
     result = _join_request_out(request, requester.display_name)
     session.commit()
     return result
