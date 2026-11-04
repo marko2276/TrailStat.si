@@ -18,7 +18,31 @@ distance_m, elevation_gain_m|null, archived: bool}`
 - `GET /trails/{id}` → `TrailSummary` + `{description, elevation_loss_m, highest_point_m, geometry: GeoJSON|null,
   elevation_profile: [[distance_m, elevation_m], ...]|null, osm_relation_id, created_at, updated_at}`
 
-An archived trail stays readable by id, for hikes that reference it.
+An archived trail stays readable by id, for hikes that reference it. Elevation fields and the profile
+are null for manual trails without those values, and for imported trails outside the elevation data.
+`owner_name` and `group_name` are also part of the detail. `geometry` is a GeoJSON LineString.
+
+Every write below returns the detail. Who may edit is `can_edit`: the creator, and for group trails
+also the group's admins. Others get 403, or 404 if they cannot see the trail. Trails cannot be deleted.
+
+- `POST /trails` `{name, distance_m, elevation_gain_m, description?, highest_point_m?, visibility, group_id?}`
+  → 201. `group_id` is required for group visibility, which needs membership, and refused for others.
+- `PATCH /trails/{id}` with any of those fields. Only the fields present change. Changing visibility or
+  group rechecks membership and the name. Distance and elevation of imported trails cannot be changed
+  (422 `osm_measurements_read_only`).
+- `POST /trails/{id}/archive`, `POST /trails/{id}/unarchive`. Doing either twice changes nothing.
+
+Names are unique within a scope, ignoring case, including archived trails: 409 `trail_name_taken`.
+
+OpenStreetMap, through Overpass. A failing, overloaded or slow Overpass gives 503 `osm_unavailable`.
+
+- `GET /trails/osm/search?q=&bbox=west,south,east,north` → page of
+  `{relation_id, name, ref, network, start_name, end_name, bbox}`, `route=hiking` relations whose name
+  contains `q`, at most 50. `q` needs two characters (422 `osm_search_too_short`).
+- `GET /trails/osm/{relation_id}` → `{relation_id, name, geometry, distance_m, complete, member_length_m}`.
+  `complete` is false if gaps or branches left part of the route out, as only the longest connected
+  chain of its ways is kept. 404 `osm_route_not_found`; 422 `osm_route_without_geometry`.
+- `POST /trails/osm/import` `{relation_id, name?, visibility, group_id?}` → 201. The name defaults to OSM's.
 
 ## Groups (`app/api/groups.py`)
 

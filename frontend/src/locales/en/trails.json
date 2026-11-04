@@ -1,3 +1,125 @@
 {
-  "title": "Trails"
+  "title": "Trails",
+  "backToList": "← All trails",
+  "archived": "Archived",
+  "archivedHint": "This trail is archived: it is hidden from lists and cannot be chosen for new hikes. Existing hikes still show it and count in statistics.",
+  "unknown": "Not known",
+  "gainValue": "{{value}} gain",
+  "noElevationShort": "No elevation data",
+  "noElevation": "No elevation data is available for this trail, because it is outside the area our elevation data covers.",
+  "noMap": "This trail was entered manually, so it has no map or elevation profile.",
+  "noGroups": "You are not a member of any group yet.",
+  "chooseGroup": "Choose a group",
+  "osmAttribution": "Route data:",
+  "viewOnOsm": "View on OpenStreetMap",
+  "copernicusAttribution": "Elevation: Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA; all rights reserved.",
+  "actions": {
+    "create": "Create manually",
+    "import": "Import from OpenStreetMap",
+    "archive": "Archive",
+    "unarchive": "Restore from archive"
+  },
+  "visibility": {
+    "public": "Public",
+    "private": "Private",
+    "group": "Group"
+  },
+  "visibilityHint": {
+    "public": "All users can see this trail. Only you can edit it.",
+    "private": "Only you can see this trail.",
+    "group": "Members of the group can see this trail. You and the group's admins can edit it."
+  },
+  "scope": {
+    "all": "All",
+    "public": "Public",
+    "mine": "Mine",
+    "group": "Group"
+  },
+  "sort": {
+    "name": "Name",
+    "distance": "Distance",
+    "elevation": "Elevation gain"
+  },
+  "order": {
+    "asc": "Ascending",
+    "desc": "Descending"
+  },
+  "list": {
+    "search": "Search by name",
+    "filter": "Show",
+    "sort": "Sort by",
+    "order": "Order",
+    "showArchived": "Show archived",
+    "empty": "There are no trails yet. Create one or import one from OpenStreetMap.",
+    "noMatches": "No trails match your search.",
+    "range": "{{from}}–{{to}} of {{total}}"
+  },
+  "fields": {
+    "name": "Name",
+    "description": "Description (optional)",
+    "distance": "Distance",
+    "distanceKm": "Distance (km)",
+    "gain": "Elevation gain",
+    "gainM": "Elevation gain (m)",
+    "loss": "Elevation loss",
+    "highest": "Highest point",
+    "highestM": "Highest point (m, optional)",
+    "creator": "Created by",
+    "visibility": "Who can see it",
+    "group": "Group"
+  },
+  "validation": {
+    "name": "Enter a name.",
+    "distance": "Enter a distance in kilometres, greater than 0 and at most 10,000.",
+    "gain": "Enter the elevation gain as a whole number of metres, from 0 to 1,000,000.",
+    "highest": "Enter the highest point as a whole number of metres, from -500 to 9,000.",
+    "group": "Choose a group."
+  },
+  "new": {
+    "title": "New trail",
+    "submit": "Create trail"
+  },
+  "edit": {
+    "title": "Edit trail"
+  },
+  "map": {
+    "title": "Map",
+    "label": "Map of the trail {{name}}",
+    "unavailable": "The map could not be shown on this device."
+  },
+  "chart": {
+    "title": "Elevation profile",
+    "distanceAxis": "Distance (km)",
+    "elevationAxis": "Elevation (m)",
+    "summary": "Over {{distance}}: starts at {{start}} and ends at {{end}}, with a lowest point of {{lowest}} and a highest point of {{highest}}."
+  },
+  "osm": {
+    "title": "Import from OpenStreetMap",
+    "search": "Name of the hiking route",
+    "searchButton": "Search",
+    "searching": "Searching OpenStreetMap. This can take up to a minute.",
+    "onlyVisible": "Only in the visible map area",
+    "results": "Search results",
+    "noResults": "No hiking routes found. Try another name or a larger area.",
+    "unnamed": "Unnamed route",
+    "preview": "Preview {{name}}",
+    "previewDistance": "Distance: {{distance}}",
+    "incomplete": "This route has gaps or branches in OpenStreetMap. Only its longest connected part will be imported: {{used}} of {{total}}.",
+    "import": "Import trail",
+    "importing": "Importing the route and calculating its elevation…",
+    "mapLabel": "Map for previewing the route"
+  },
+  "errors": {
+    "trail_name_taken": "A trail with this name already exists here, possibly archived. Choose another name.",
+    "group_required": "Choose a group.",
+    "group_not_allowed": "Only trails shared with a group can have a group.",
+    "trail_has_no_owner": "This trail's creator no longer has an account, so it must stay with the group.",
+    "name_required": "Enter a name.",
+    "osm_measurements_read_only": "The distance and elevation of an imported trail come from its route and cannot be changed.",
+    "osm_unavailable": "OpenStreetMap search is not available right now. Please try again in a few minutes.",
+    "osm_route_not_found": "This hiking route no longer exists in OpenStreetMap.",
+    "osm_route_without_geometry": "This route has no path of its own in OpenStreetMap, so it cannot be imported. It may be a collection of other routes.",
+    "osm_search_too_short": "Enter at least two characters.",
+    "invalid_bbox": "The visible map area could not be used. Move the map and try again."
+  }
 }

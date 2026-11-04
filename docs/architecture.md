@@ -23,8 +23,8 @@
 | Component | Technology | Notes |
 |---|---|---|
 | Frontend | TypeScript, React, Vite, PWA | One codebase for desktop and mobile. Can be wrapped with Capacitor for app stores later. |
-| Maps | MapLibre GL JS | Vector tiles from MapTiler (CH) or self-hosted Protomaps. Not the openstreetmap.org tile servers (usage policy forbids app use). |
-| Elevation chart | Lightweight chart library | Rendered from the trail's elevation profile. |
+| Maps | MapLibre GL JS | Vector tiles from OpenFreeMap by default, no key needed (`VITE_MAP_STYLE_URL`). Not the openstreetmap.org tile servers (usage policy forbids app use). |
+| Elevation chart | Hand-written SVG | Rendered from the trail's elevation profile. |
 | i18n | i18next (frontend), Babel/gettext (backend e-mails) | `en`, `sl` at launch. |
 | Backend | Python 3.12+, FastAPI, SQLAlchemy 2, GeoAlchemy2, Alembic, Pydantic | REST API with generated OpenAPI spec. Validates Hanko session tokens (JWT via JWKS); never sees passwords. |
 | Database | PostgreSQL 16 + PostGIS | Separate container with named volume. Trail geometries stored as `LineString` (SRID 4326). |

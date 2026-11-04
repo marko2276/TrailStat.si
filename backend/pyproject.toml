@@ -11,6 +11,8 @@ dependencies = [
     "psycopg[binary]>=3.2",
     "pydantic-settings>=2.4",
     "pyjwt[crypto]>=2.9",
+    "pyproj>=3.8.0",
+    "rasterio>=1.5.2",
     "sqlalchemy>=2.0.30",
     "uvicorn[standard]>=0.30",
 ]
@@ -38,3 +40,7 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 python_version = "3.12"
 strict = true
 files = ["app", "tests"]
+
+[[tool.mypy.overrides]]
+module = ["rasterio.*"]
+ignore_missing_imports = true

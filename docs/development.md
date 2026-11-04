@@ -71,8 +71,35 @@ The app is served by Caddy on http://localhost:8080.
 
 ## Elevation data
 
-Put Copernicus GLO-30 DEM GeoTIFF files in `data/dem/` (or the directory set by `DEM_DIR`).
-They are mounted read-only into the backend and are not stored in git.
+Trail imports read elevation from Copernicus GLO-30 DEM GeoTIFF files in `data/dem/` (or the directory
+set by `DEM_DIR`). They are mounted read-only into the backend and are not stored in git.
+
+```sh
+./scripts/download-dem.sh                 # Slovenia and the nearby Alps: N45-N47, E013-E016, about 500 MB
+./scripts/download-dem.sh N46_00_E013_00  # only the named tiles
+```
+
+The script needs `curl`, skips files already there, and fetches from the public `copernicus-dem-30m`
+bucket. Tiles are found by their georeferencing on every import, so supporting a new region only means
+putting its tiles in the directory, without a restart. Trails imported before that keep having no
+elevation data.
+
+Without a matching tile, or with any void along the route, a trail is imported with null elevation
+fields and the app says so. These values are a radar surface model at 30 m, so sharp summits come out
+low: Triglav (2864 m) is 2801 m at its highest pixel.
+
+**Attribution is required** wherever these elevations are shown, and the trail page shows it:
+"produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH
+2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved".
+
+## OpenStreetMap and maps
+
+`OVERPASS_URL` sets the Overpass server, by default the public `overpass-api.de`. Be gentle with it:
+tests use a mocked transport, and the app never repeats a failed query on its own. OSM data must be
+credited (ODbL), and the map and every imported trail do so.
+
+`VITE_MAP_STYLE_URL` sets the MapLibre style, by default OpenFreeMap's `liberty`, which needs no key.
+It is read at build time. Do not use openstreetmap.org's tile servers: their policy forbids it.
 
 ## Run all checks
 

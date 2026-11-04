@@ -1,0 +1,172 @@
+/* Layout of the trail pages. Colours come from the shared tokens in src/styles.css. */
+
+.trail-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+  margin-bottom: 1rem;
+}
+
+.trail-filters .field-wide {
+  grid-column: 1 / -1;
+}
+
+.check-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.trail-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.trail-list-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.trail-list-meta,
+.trail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+}
+
+.trail-badges {
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.trail-name {
+  overflow-wrap: anywhere;
+}
+
+.trail-description {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+}
+
+.stat-value {
+  font-size: 1.15rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.trail-map {
+  width: 100%;
+  height: min(60vh, 28rem);
+  min-height: 16rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.trail-section {
+  margin-top: 1rem;
+}
+
+.attribution {
+  font-size: 0.85rem;
+  margin: 0.5rem 0 0;
+}
+
+.elevation-chart {
+  margin: 0;
+  position: relative;
+}
+
+.elevation-chart svg {
+  display: block;
+  width: 100%;
+  touch-action: pan-y;
+}
+
+.elevation-chart text {
+  fill: var(--color-muted);
+  font-size: 12px;
+}
+
+.elevation-grid {
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.elevation-line {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.elevation-area {
+  fill: var(--color-primary);
+  opacity: 0.12;
+}
+
+.elevation-crosshair {
+  stroke: var(--color-muted);
+  stroke-width: 1;
+}
+
+.elevation-marker {
+  fill: var(--color-primary);
+  stroke: var(--color-surface);
+  stroke-width: 2;
+}
+
+.elevation-tooltip {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  padding: 0.1rem 0.5rem;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  pointer-events: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.osm-results {
+  list-style: none;
+  margin: 0.75rem 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.osm-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.osm-result > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
