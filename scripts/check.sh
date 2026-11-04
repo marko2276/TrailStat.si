@@ -26,6 +26,8 @@ frontend npm run lint
 frontend npm run format:check
 frontend npm run typecheck
 frontend npm test
-frontend npm run build
+
+echo "== production images"
+docker compose -f compose.yaml build
 
 echo "== all checks passed"
