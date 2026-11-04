@@ -5,7 +5,7 @@ import { render as rtlRender } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { UNAUTHORIZED_EVENT } from "../lib/api";
-import { AuthProvider, useAuth } from "./AuthContext";
+import { AuthProvider, accountDeletion, useAuth } from "./AuthContext";
 import { LoginPage } from "./LoginPage";
 import { RequireAuth } from "./RequireAuth";
 
@@ -30,6 +30,7 @@ vi.mock("./hanko", () => ({
   isHankoConfigured: true,
   getHanko: () => Promise.resolve(hanko),
   getSessionToken: () => "token",
+  getLastSessionToken: () => "token",
 }));
 
 function Where() {
@@ -109,6 +110,36 @@ describe("authentication flow", () => {
       expect(clear).toHaveBeenCalled();
     },
   );
+
+  it("also deletes our data when the account is deleted through Hanko's own component", async () => {
+    hanko.validateSession.mockResolvedValue({ is_valid: true });
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+    renderApp("/trails");
+    await screen.findByText("secret content");
+
+    act(() => hanko.listeners.deleted());
+
+    await waitFor(() => expect(screen.getByTestId("where").textContent).toBe("/login"));
+    expect(fetchMock).toHaveBeenCalledWith("/api/me", {
+      method: "DELETE",
+      headers: { Authorization: "Bearer token" },
+    });
+  });
+
+  it("does not delete twice when the app itself is deleting the account", async () => {
+    hanko.validateSession.mockResolvedValue({ is_valid: true });
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    renderApp("/trails");
+    await screen.findByText("secret content");
+
+    accountDeletion.inProgress = true;
+    act(() => hanko.listeners.deleted());
+    accountDeletion.inProgress = false;
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 
   it("signs out when the API rejects the session", async () => {
     hanko.validateSession.mockResolvedValue({ is_valid: true });

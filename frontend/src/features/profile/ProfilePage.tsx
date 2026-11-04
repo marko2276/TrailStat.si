@@ -5,6 +5,7 @@ import { ErrorMessage } from "../../components/ErrorMessage";
 import { Loading } from "../../components/Loading";
 import { getHanko } from "../../auth/hanko";
 import { countryOptions } from "../../lib/countries";
+import { AccountData } from "./AccountData";
 import { useMe, useUpdateMe } from "./api";
 import type { Me } from "./api";
 
@@ -108,6 +109,7 @@ export function ProfilePage() {
       <div className="card">
         <HankoProfile />
       </div>
+      <AccountData me={me} />
     </>
   );
 }

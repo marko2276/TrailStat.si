@@ -413,24 +413,28 @@ def _release_shared_trails(session: Session, group: Group) -> None:
         session.flush()
 
 
-@router.delete("/{group_id}", status_code=204)
-def delete_group(group_id: uuid.UUID, user: CurrentUser, session: DbSession) -> None:
-    group = _lock_group(session, group_id)
-    permissions.require_admin(session, group_id, user)
-
+def remove_group(session: Session, group: Group) -> None:
+    """Deletes a group by the documented rules, without committing. The caller holds its lock."""
     # Guests' attendance goes with the group's guests, so hikes without a user among their
     # attendees would be left with nobody. The others stay, with group_id set NULL by the FK.
     has_user_attendee = exists().where(
         HikeAttendee.hike_id == Hike.id, HikeAttendee.user_id.is_not(None)
     )
+    _release_shared_trails(session, group)
+    session.execute(
+        delete(Hike)
+        .where(Hike.group_id == group.id, ~has_user_attendee)
+        .execution_options(synchronize_session=False)
+    )
+    session.delete(group)
+
+
+@router.delete("/{group_id}", status_code=204)
+def delete_group(group_id: uuid.UUID, user: CurrentUser, session: DbSession) -> None:
+    group = _lock_group(session, group_id)
+    permissions.require_admin(session, group_id, user)
     try:
-        _release_shared_trails(session, group)
-        session.execute(
-            delete(Hike)
-            .where(Hike.group_id == group_id, ~has_user_attendee)
-            .execution_options(synchronize_session=False)
-        )
-        session.delete(group)
+        remove_group(session, group)
         session.commit()
     except IntegrityError as exc:
         # A concurrent request took a trail name or shared a trail with this group. Nothing

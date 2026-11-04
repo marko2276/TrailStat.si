@@ -97,3 +97,10 @@ Error codes (422): `trail_archived`, `trail_not_visible_to_group`, `attendees_re
   so this is what non-members of a public group see.
 - `GET /stats/groups/{id}?start_from=&start_to=` → members only:
   `{totals: Totals, attendees: [{user_id, guest_id, name, totals: Totals}]}`
+
+## Your account (`app/api/me.py`)
+
+- `GET /me/export` → everything stored about the user, as JSON
+- `DELETE /me` → removes the user's data. Hikes only they attended and their private trails go,
+  unless someone else's hike refers to the trail. A last admin's group passes to its
+  longest-standing member, or is deleted if nobody else is in it.

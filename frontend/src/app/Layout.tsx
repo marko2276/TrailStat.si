@@ -41,6 +41,9 @@ export function Layout() {
       <main className="site-main">
         <Outlet />
       </main>
+      <footer className="site-footer">
+        <Link to="/privacy">{t("privacy")}</Link>
+      </footer>
     </>
   );
 }

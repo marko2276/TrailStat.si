@@ -2,7 +2,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { UNAUTHORIZED_EVENT } from "../lib/api";
-import { getHanko, isHankoConfigured } from "./hanko";
+import { getHanko, getLastSessionToken, isHankoConfigured } from "./hanko";
+
+/** Set while the app itself deletes the account, when our data is already gone. */
+export const accountDeletion = { inProgress: false };
 
 export type AuthStatus = "loading" | "authenticated" | "anonymous" | "unconfigured";
 
@@ -41,7 +44,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           hanko.onSessionCreated(() => setStatus("authenticated")),
           hanko.onSessionExpired(signedOut),
           hanko.onUserLoggedOut(signedOut),
-          hanko.onUserDeleted(signedOut),
+          hanko.onUserDeleted(() => {
+            // Deleted through Hanko's own profile component, so ours must go too. This is
+            // the last chance, as this token only works until it expires.
+            const token = getLastSessionToken();
+            if (token && !accountDeletion.inProgress) {
+              void fetch("/api/me", {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` },
+              }).catch(() => undefined); // Best effort: the user is already gone at Hanko.
+            }
+            signedOut();
+          }),
         );
         const session = await hanko.validateSession();
         if (active) setStatus(session.is_valid ? "authenticated" : "anonymous");

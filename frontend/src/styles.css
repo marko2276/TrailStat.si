@@ -298,3 +298,11 @@ hanko-profile {
   --brand-color-shade-1: var(--color-primary-hover);
   --link-color: var(--color-primary);
 }
+
+.site-footer {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 1rem;
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  font-size: 0.9rem;
+}
