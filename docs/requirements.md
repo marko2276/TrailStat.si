@@ -65,6 +65,13 @@ Only the creator can change who sees a trail (its visibility or group): a group 
 correct a member's shared trail, but cannot publish it. Creators keep seeing their own trail
 after leaving the group it is shared with.
 
+Statistics take distance and elevation from the trail. So once a hike on a trail has an attendee
+other than the person editing it (another user or a guest), its distance, elevation gain and loss,
+and highest point can no longer be changed. Its name and description still can.
+
+Listing archived trails shows only those the user can edit, the only ones they could bring back.
+Other archived trails are hidden, as archiving intends.
+
 ### Groups
 
 | Action | Who |

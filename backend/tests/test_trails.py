@@ -1,24 +1,31 @@
 """Trail endpoints: manual trails, visibility, permissions, name scopes, archiving and listing."""
 
+import threading
 import uuid
 from collections.abc import Callable
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
+from app.main import app
 from app.models import (
     Group,
+    GroupGuest,
     GroupMembership,
     GroupRole,
     GroupVisibility,
+    Hike,
+    HikeAttendee,
     Trail,
     TrailSource,
     TrailVisibility,
     User,
 )
-from tests.conftest import AuthHeaders, CreateUser
+from tests.conftest import AuthHeaders, CreateUser, wait_for_lock_waiters
 
 MakeGroup = Callable[..., Group]
 PostTrail = Callable[..., dict[str, Any]]
@@ -1162,3 +1169,228 @@ def test_list_rejects_invalid_parameters(
     response = client.get("/api/trails", headers=auth_headers(create_user()), params=params)
 
     assert response.status_code == 422
+
+
+# Listing archived trails
+
+
+def test_include_archived_lists_only_what_the_user_can_edit(
+    client: TestClient,
+    session: Session,
+    create_user: CreateUser,
+    auth_headers: AuthHeaders,
+    post_trail: PostTrail,
+    make_group: MakeGroup,
+) -> None:
+    owner, admin, member, stranger = create_user(), create_user(), create_user(), create_user()
+    group = make_group(admins=(admin,), members=(owner, member))
+    public = post_trail(owner, visibility="public", name="Archived public")
+    shared = post_trail(owner, visibility="group", group_id=str(group.id), name="Archived shared")
+    active = post_trail(owner, visibility="public", name="Active")
+    for trail in (public, shared):
+        client.post(f"/api/trails/{trail['id']}/archive", headers=auth_headers(owner))
+
+    def listed(user: User) -> list[str]:
+        response = client.get(
+            "/api/trails", headers=auth_headers(user), params={"include_archived": True}
+        )
+        assert response.json()["total"] == len(response.json()["items"])
+        return [item["name"] for item in response.json()["items"]]
+
+    assert listed(owner) == [active["name"], "Archived public", "Archived shared"]
+    # The group's admin can edit the shared one, and bring it back.
+    assert listed(admin) == [active["name"], "Archived shared"]
+    assert listed(member) == [active["name"]]
+    assert listed(stranger) == [active["name"]]
+
+
+# Measurements that other people's statistics depend on
+
+
+def hike_on(
+    session: Session,
+    trail_id: str,
+    users: tuple[User, ...] = (),
+    guests: tuple[GroupGuest, ...] = (),
+    group: Group | None = None,
+) -> Hike:
+    hike = Hike(
+        trail_id=uuid.UUID(trail_id),
+        group_id=group.id if group else None,
+        start_at=datetime(2026, 1, 1, tzinfo=UTC),
+        duration_s=3600,
+    )
+    hike.attendees = [HikeAttendee(user_id=user.id) for user in users] + [
+        HikeAttendee(guest_id=guest.id) for guest in guests
+    ]
+    session.add(hike)
+    session.commit()
+    return hike
+
+
+@pytest.mark.parametrize(
+    "change",
+    [{"distance_m": 1}, {"elevation_gain_m": 1}, {"highest_point_m": 1}, {"highest_point_m": None}],
+)
+def test_measurements_are_locked_once_someone_else_attended(
+    client: TestClient,
+    session: Session,
+    create_user: CreateUser,
+    auth_headers: AuthHeaders,
+    post_trail: PostTrail,
+    change: dict[str, Any],
+) -> None:
+    owner, hiker = create_user(), create_user()
+    trail = post_trail(owner, visibility="public", highest_point_m=669)
+    hike_on(session, trail["id"], users=(hiker,))
+    url = f"/api/trails/{trail['id']}"
+
+    response = client.patch(url, json=change, headers=auth_headers(owner))
+
+    assert (response.status_code, response.json()["detail"]) == (409, "trail_measurements_in_use")
+    after = client.get(url, headers=auth_headers(owner)).json()
+    assert (after["distance_m"], after["elevation_gain_m"], after["highest_point_m"]) == (
+        4200,
+        350,
+        669,
+    )
+    assert after["can_edit_measurements"] is False
+
+
+def test_a_guest_locks_the_measurements_too(
+    client: TestClient,
+    session: Session,
+    create_user: CreateUser,
+    auth_headers: AuthHeaders,
+    post_trail: PostTrail,
+    make_group: MakeGroup,
+) -> None:
+    owner = create_user()
+    group = make_group(admins=(owner,))
+    guest = GroupGuest(group_id=group.id, nickname="Guest")
+    session.add(guest)
+    session.commit()
+    trail = post_trail(owner, visibility="group", group_id=str(group.id))
+    hike_on(session, trail["id"], guests=(guest,), group=group)
+
+    response = client.patch(
+        f"/api/trails/{trail['id']}", json={"distance_m": 1}, headers=auth_headers(owner)
+    )
+
+    assert response.status_code == 409
+
+
+def test_the_editors_own_hikes_do_not_lock_the_measurements(
+    client: TestClient,
+    session: Session,
+    create_user: CreateUser,
+    auth_headers: AuthHeaders,
+    post_trail: PostTrail,
+) -> None:
+    owner = create_user()
+    trail = post_trail(owner, visibility="public")
+    hike_on(session, trail["id"], users=(owner,))
+    url = f"/api/trails/{trail['id']}"
+
+    assert client.get(url, headers=auth_headers(owner)).json()["can_edit_measurements"] is True
+    response = client.patch(url, json={"distance_m": 1234}, headers=auth_headers(owner))
+
+    assert response.status_code == 200
+    assert response.json()["distance_m"] == 1234
+
+
+def test_name_and_description_stay_editable_and_unchanged_values_are_no_edit(
+    client: TestClient,
+    session: Session,
+    create_user: CreateUser,
+    auth_headers: AuthHeaders,
+    post_trail: PostTrail,
+) -> None:
+    owner, hiker = create_user(), create_user()
+    trail = post_trail(owner, visibility="public")
+    hike_on(session, trail["id"], users=(hiker,))
+
+    response = client.patch(
+        f"/api/trails/{trail['id']}",
+        json={"name": "New name", "description": "New", "distance_m": 4200},
+        headers=auth_headers(owner),
+    )
+
+    assert response.status_code == 200
+    assert (response.json()["name"], response.json()["description"]) == ("New name", "New")
+
+
+def test_elevation_loss_cannot_be_written_at_all(
+    client: TestClient, create_user: CreateUser, auth_headers: AuthHeaders, post_trail: PostTrail
+) -> None:
+    owner = create_user()
+    trail = post_trail(owner)
+
+    response = client.patch(
+        f"/api/trails/{trail['id']}", json={"elevation_loss_m": 5}, headers=auth_headers(owner)
+    )
+
+    assert response.json()["elevation_loss_m"] is None
+
+
+def test_can_edit_measurements_is_false_for_those_who_cannot_edit_and_for_imports(
+    client: TestClient,
+    session: Session,
+    create_user: CreateUser,
+    auth_headers: AuthHeaders,
+    post_trail: PostTrail,
+) -> None:
+    owner = create_user()
+    trail = post_trail(owner, visibility="public")
+    url = f"/api/trails/{trail['id']}"
+
+    assert (
+        client.get(url, headers=auth_headers(create_user())).json()["can_edit_measurements"]
+        is False
+    )
+
+    session.get_one(Trail, uuid.UUID(trail["id"])).source = TrailSource.OSM
+    session.commit()
+    assert client.get(url, headers=auth_headers(owner)).json()["can_edit_measurements"] is False
+
+
+def test_an_edit_waits_for_a_hike_still_being_recorded(
+    test_engine: Engine, real_user: CreateUser, auth_headers: AuthHeaders
+) -> None:
+    """With real connections: otherwise the hike is committed right after the check passed."""
+    owner, hiker = real_user(), real_user()
+    with Session(test_engine) as setup:
+        trail = Trail(
+            name="Shared",
+            visibility=TrailVisibility.PUBLIC,
+            owner_user_id=owner.id,
+            source=TrailSource.MANUAL,
+            distance_m=1000,
+        )
+        setup.add(trail)
+        setup.commit()
+        trail_id = trail.id
+    client = TestClient(app)
+    statuses: list[int] = []
+
+    def edit() -> None:
+        response = client.patch(
+            f"/api/trails/{trail_id}", json={"distance_m": 1}, headers=auth_headers(owner)
+        )
+        statuses.append(response.status_code)
+
+    with Session(test_engine) as recording:
+        hike_on_uncommitted = Hike(
+            trail_id=trail_id, start_at=datetime(2026, 1, 1, tzinfo=UTC), duration_s=3600
+        )
+        hike_on_uncommitted.attendees = [HikeAttendee(user_id=hiker.id)]
+        recording.add(hike_on_uncommitted)
+        recording.flush()
+        thread = threading.Thread(target=edit)
+        thread.start()
+        waiting = wait_for_lock_waiters(test_engine, 1, timeout_s=5)
+        recording.commit()
+    thread.join(timeout=30)
+
+    assert waiting == 1, "the edit did not wait for the hike being recorded"
+    assert statuses == [409]

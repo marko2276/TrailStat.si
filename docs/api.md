@@ -19,8 +19,10 @@ distance_m, elevation_gain_m|null, archived: bool}`
 
 - `GET /trails?q=&scope=all|public|mine|group&group_id=&include_archived=false&sort=name|distance|elevation&order=asc|desc`
   → page of `TrailSummary`, only trails the user can see. `scope=mine` means created by the user.
+  `include_archived` adds only the archived trails the user can edit.
 - `GET /trails/{id}` → `TrailSummary` + `{description, elevation_loss_m, highest_point_m, geometry: GeoJSON|null,
-  elevation_profile: [[distance_m, elevation_m], ...]|null, osm_relation_id, created_at, updated_at}`
+  elevation_profile: [[distance_m, elevation_m], ...]|null, osm_relation_id, can_edit_measurements,
+  created_at, updated_at}`
 
 An archived trail stays readable by id, for hikes that reference it. Elevation fields and the profile
 are null for manual trails without those values, and for imported trails outside the elevation data.
@@ -33,7 +35,11 @@ also the group's admins. Others get 403, or 404 if they cannot see the trail. Tr
   → 201. `group_id` is required for group visibility, which needs membership, and refused for others.
 - `PATCH /trails/{id}` with any of those fields. Only the fields present change. Changing visibility or
   group rechecks membership and the name. Distance and elevation of imported trails cannot be changed
-  (422 `osm_measurements_read_only`).
+  (422 `osm_measurements_read_only`). Once a hike on the trail has an attendee other than the editor,
+  a user or a guest, a change to `distance_m`, `elevation_gain_m` or `highest_point_m` gives
+  409 `trail_measurements_in_use`, as these are in that attendee's statistics. Sending the current
+  value is no change. The detail's `can_edit_measurements` tells the UI. `elevation_loss_m` is never
+  writable: it comes from the elevation data.
 - `POST /trails/{id}/archive`, `POST /trails/{id}/unarchive`. Doing either twice changes nothing.
 
 Names are unique within a scope, ignoring case, including archived trails: 409 `trail_name_taken`.

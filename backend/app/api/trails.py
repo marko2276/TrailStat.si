@@ -15,9 +15,10 @@ from sqlalchemy.orm import Session, defer
 from app.auth import CurrentUser, DbSession
 from app.config import get_settings
 from app.errors import ApiError
-from app.models import Group, Trail, TrailSource, TrailVisibility, User
+from app.models import Group, Hike, HikeAttendee, Trail, TrailSource, TrailVisibility, User
 from app.permissions import (
     can_edit_trail,
+    editable_trails_clause,
     get_visible_trail,
     require_member,
     visible_trails_clause,
@@ -87,6 +88,22 @@ def _summary_fields(session: Session, trail: Trail, user: User) -> dict[str, Any
     }
 
 
+def _used_by_others(session: Session, trail: Trail, user: User) -> bool:
+    """Whether a hike on the trail has an attendee other than this user, also a guest. Distance
+    and elevation come from the trail, so changing them would rewrite that attendee's history."""
+    return bool(
+        session.scalar(
+            select(
+                exists().where(
+                    Hike.trail_id == trail.id,
+                    HikeAttendee.hike_id == Hike.id,
+                    or_(HikeAttendee.user_id.is_(None), HikeAttendee.user_id != user.id),
+                )
+            )
+        )
+    )
+
+
 def _to_detail(session: Session, trail: Trail, user: User) -> TrailDetail:
     owner = session.get(User, trail.owner_user_id) if trail.owner_user_id else None
     group = session.get(Group, trail.group_id) if trail.group_id else None
@@ -95,6 +112,11 @@ def _to_detail(session: Session, trail: Trail, user: User) -> TrailDetail:
     return TrailDetail(
         **summary,
         can_change_sharing=trail.owner_user_id == user.id,
+        can_edit_measurements=(
+            summary["can_edit"]
+            and trail.source == TrailSource.MANUAL
+            and not _used_by_others(session, trail, user)
+        ),
         owner_name=owner.display_name if owner else None,
         group_name=group.name if group else None,
         description=trail.description,
@@ -291,7 +313,10 @@ def list_trails(
         conditions.append(Trail.visibility == TrailVisibility.GROUP)
     if group_id is not None:
         conditions.append(Trail.group_id == group_id)
-    if not include_archived:
+    if include_archived:
+        # Archiving hides a trail from others: only those who can unarchive it find it again.
+        conditions.append(or_(Trail.archived_at.is_(None), editable_trails_clause(user)))
+    else:
         conditions.append(Trail.archived_at.is_(None))
 
     columns = {
@@ -363,6 +388,12 @@ def update_trail(
             raise ApiError(422, f"{required}_required")
     if trail.source == TrailSource.OSM and any(field in changes for field in _MEASUREMENTS):
         raise ApiError(422, "osm_measurements_read_only")
+    if any(field in changes and changes[field] != getattr(trail, field) for field in _MEASUREMENTS):
+        # Recording a hike needs a share of this lock, through the foreign key. So a hike still
+        # being recorded is waited for and seen below, and a later one waits for this edit.
+        session.execute(select(Trail.id).where(Trail.id == trail.id).with_for_update())
+        if _used_by_others(session, trail, user):
+            raise ApiError(409, "trail_measurements_in_use")
 
     visibility = changes.pop("visibility", trail.visibility)
     # A trail without an owner stays with its group: as private nobody could see it, and as

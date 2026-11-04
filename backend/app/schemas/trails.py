@@ -61,6 +61,8 @@ class TrailSummary(ApiModel):
 
 class TrailDetail(TrailSummary):
     can_change_sharing: bool
+    # False for imported trails, and once a hike on the trail counts someone else's statistics.
+    can_edit_measurements: bool
     # Null after the creator deleted their account.
     owner_name: str | None
     group_name: str | None

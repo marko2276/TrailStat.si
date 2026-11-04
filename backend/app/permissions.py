@@ -62,6 +62,17 @@ def visible_trails_clause(user: User) -> ColumnElement[bool]:
     )
 
 
+def editable_trails_clause(user: User) -> ColumnElement[bool]:
+    """The trails `can_edit_trail` allows, for use in a query."""
+    my_admin_groups = select(GroupMembership.group_id).where(
+        GroupMembership.user_id == user.id, GroupMembership.role == GroupRole.ADMIN
+    )
+    return or_(
+        Trail.owner_user_id == user.id,
+        (Trail.visibility == TrailVisibility.GROUP) & Trail.group_id.in_(my_admin_groups),
+    )
+
+
 def get_visible_trail(session: Session, trail_id: uuid.UUID, user: User) -> Trail:
     trail = session.scalar(select(Trail).where(Trail.id == trail_id, visible_trails_clause(user)))
     if trail is None:

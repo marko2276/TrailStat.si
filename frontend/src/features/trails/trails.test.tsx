@@ -51,6 +51,7 @@ const summary = {
 
 const manualDetail = {
   can_change_sharing: true,
+  can_edit_measurements: true,
   ...summary,
   owner_name: "Marko",
   group_name: null,
@@ -640,6 +641,54 @@ describe("editing a trail", () => {
     const body = api.bodyOf("PATCH /api/trails/t1") as Record<string, unknown>;
     expect(body).not.toHaveProperty("visibility");
     expect(body).not.toHaveProperty("group_id");
+  });
+
+  it("shows measurements others rely on as disabled, and doesn't send them", async () => {
+    const api = mockApi({
+      "GET /api/trails/t1": { ...manualDetail, can_edit: true, can_edit_measurements: false },
+      "PATCH /api/trails/t1": manualDetail,
+    });
+    render(
+      <Routes>
+        <Route path="/trails/:id/edit" element={<EditTrailPage />} />
+        <Route path="/trails/:id" element={<p>detail page</p>} />
+      </Routes>,
+      { route: "/trails/t1/edit" },
+    );
+
+    const distance = (await screen.findByLabelText("Distance (km)")) as HTMLInputElement;
+    expect(distance.disabled).toBe(true);
+    expect(distance.value).toBe("4.2");
+    expect((screen.getByLabelText("Elevation gain (m)") as HTMLInputElement).disabled).toBe(true);
+    expect(
+      (screen.getByLabelText("Highest point (m, optional)") as HTMLInputElement).disabled,
+    ).toBe(true);
+    expect(screen.getByText(/other people's hikes on this trail/)).toBeTruthy();
+
+    await userEvent.clear(screen.getByLabelText("Name"));
+    await userEvent.type(screen.getByLabelText("Name"), "New name");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await screen.findByText("detail page");
+    const body = api.bodyOf("PATCH /api/trails/t1") as Record<string, unknown>;
+    expect(body.name).toBe("New name");
+    expect(body).not.toHaveProperty("distance_m");
+    expect(body).not.toHaveProperty("elevation_gain_m");
+    expect(body).not.toHaveProperty("highest_point_m");
+  });
+
+  it("explains a refusal when someone else's hike came first", async () => {
+    mockApi({
+      "GET /api/trails/t1": { ...manualDetail, can_edit: true },
+      "PATCH /api/trails/t1": { status: 409, body: { detail: "trail_measurements_in_use" } },
+    });
+    renderRoutes("/trails/t1/edit");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Save" }));
+
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "other people's hikes on this trail",
+    );
   });
 
   it("does not show the form to users who cannot edit", async () => {
