@@ -106,6 +106,22 @@ It is read at build time. Do not use openstreetmap.org's tile servers: their pol
 `./scripts/check.sh` runs every linter and test in containers, against a throwaway database.
 It does not touch the dev stack.
 
+## End-to-end tests
+
+`./scripts/e2e.sh [playwright args]` runs real browsers, desktop and phone, against the production
+build through Caddy, with a throwaway database. The harness is test-only, in `e2e/`:
+
+- `e2e/mock-hanko/server.mjs` stands in for Hanko (real signed tokens, but no sign-in screen) and
+  Overpass (`backend/tests/fixtures`, with queries that choose a failure).
+- Mailpit receives e-mail, and tests read the real messages through its API.
+- `e2e/dem/` has a synthetic elevation tile for that route, written by `generate.py`.
+- The map style is stubbed, so tests don't need the tile server.
+
+Set `E2E_APP_PORT`, `E2E_HANKO_PORT`, `E2E_HTTPS_PORT` and `E2E_MAILPIT_PORT` to run beside something
+else. Screenshots of all pages go to `e2e/screenshots/`, for looking at the layout.
+
+Tests share a database and run in parallel, so names of public things must be unique: `unique()`.
+
 ## Code conventions
 
 **Layout.** Each feature owns its files: backend `app/api/<feature>.py` and
@@ -134,6 +150,7 @@ forbidden case fails: every permission needs a test with the wrong user.
   are shown by `<ErrorMessage error={error} ns="<feature>" />`.
 - Dates, numbers, distance, elevation and duration: `useFormat()` from `src/lib/format.ts`.
 - Styling: reuse the classes in `src/styles.css`. Layouts must work at phone width.
+- Changing data other features show: `invalidateSharedData` from `src/lib/sharedData.ts`.
 
 **Frontend tests**: `render` from `src/test/render.tsx` and `mockApi` from `src/test/mockApi.ts`.
 Mock `../../auth/hanko` in tests that use the API, as the existing ones do.
