@@ -12,6 +12,12 @@ services:
     user: ${UID:-1000}:${GID:-1000}
     environment:
       HANKO_API_URL: ${HANKO_API_URL:-${HANKO_TRAILSTAT_SANDBOX_API:-}}
+      # All e-mail goes to Mailpit: nothing leaves the machine.
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_USER: ""
+      SMTP_STARTTLS: "false"
+      APP_URL: http://localhost:5173
     volumes:
       - ./backend:/app
     ports:
@@ -29,6 +35,13 @@ services:
     ports:
       # Must stay 5173: the Hanko sandbox project is configured for this origin.
       - 127.0.0.1:5173:5173
+
+  # Catches outgoing e-mail in development. Its inbox is at http://localhost:8025.
+  mailpit:
+    image: axllent/mailpit:v1.27
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:8025:8025
 
   # Vite serves the app directly in development.
   caddy:

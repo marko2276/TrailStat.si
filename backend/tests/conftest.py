@@ -11,6 +11,7 @@ keys is replaced.
 import time
 import uuid
 from collections.abc import Callable, Iterator
+from email.message import EmailMessage
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +29,7 @@ from app.config import get_settings
 from app.db import get_session
 from app.main import app
 from app.models import User
+from app.services.email import EmailError, get_email_sender
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 KEY_ID = "test-key"
@@ -150,3 +152,24 @@ def auth_headers(make_token: MakeToken) -> AuthHeaders:
         return {"Authorization": f"Bearer {token}"}
 
     return _headers
+
+
+class FakeSender:
+    """Records messages instead of sending them. Set `fail` to simulate a mail server failure."""
+
+    def __init__(self) -> None:
+        self.messages: list[EmailMessage] = []
+        self.fail = False
+
+    def send(self, message: EmailMessage) -> None:
+        if self.fail:
+            raise EmailError("simulated failure")
+        self.messages.append(message)
+
+
+@pytest.fixture
+def outbox() -> Iterator[FakeSender]:
+    sender = FakeSender()
+    app.dependency_overrides[get_email_sender] = lambda: sender
+    yield sender
+    app.dependency_overrides.pop(get_email_sender, None)

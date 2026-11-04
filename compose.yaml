@@ -9,6 +9,13 @@ x-backend-environment: &backend-environment
   HANKO_API_URL: ${HANKO_API_URL:-}
   HANKO_AUDIENCE: ${HANKO_AUDIENCE:-}
   DEM_DIR: /data/dem
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_FROM: ${SMTP_FROM:-TrailStat <noreply@trailstat.si>}
+  SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+  APP_URL: ${APP_URL:-http://localhost:8080}
 
 services:
   db:

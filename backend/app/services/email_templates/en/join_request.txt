@@ -1,0 +1,9 @@
+Subject: $requester asked to join $group on TrailStat
+Hello,
+
+$requester asked to join your group "$group" on TrailStat.
+
+Open the group to approve or reject the request:
+$link
+
+TrailStat

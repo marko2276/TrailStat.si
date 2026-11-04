@@ -1,0 +1,14 @@
+Subject: $inviter invited you to the group $group on TrailStat
+Hello,
+
+$inviter invited you to join the hiking group "$group" on TrailStat.
+
+Open this link to accept or decline the invitation:
+$link
+
+Sign in with this e-mail address. If you don't have an account yet, you can create one with it after opening the link.
+The link is valid for $days days.
+
+If you weren't expecting this invitation, you can ignore this message.
+
+TrailStat

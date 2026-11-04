@@ -14,11 +14,22 @@ docker compose up --build
 | http://localhost:5173 | App, with live reload |
 | http://localhost:8000/api/docs | API documentation |
 | http://localhost:5173/api/health/ready | Readiness check through the frontend proxy |
+| http://localhost:8025 | Mailpit: the inbox for all e-mail sent in development |
 
 Database migrations run automatically on start (the `migrate` service).
 
 The Hanko API URL comes from `HANKO_API_URL` in `.env`, or from
 `HANKO_TRAILSTAT_SANDBOX_API` in your `.envrc`. With an `.envrc`, run `direnv allow` once.
+
+## E-mail
+
+In development the backend sends all e-mail to [Mailpit](https://mailpit.axllent.org), which
+catches it: nothing leaves the machine. Read it at http://localhost:8025. In production, set
+`SMTP_HOST`, the other `SMTP_*` settings and `APP_URL` in `.env`. Tests use a fake sender, the
+`outbox` fixture.
+
+Templates are in `backend/app/services/email_templates/<language>/`; the first line of each file
+is the subject. To add a language, add a directory.
 
 ## Checks
 
