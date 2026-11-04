@@ -24,9 +24,39 @@ function placeholders(text: string): string[] {
   return (text.match(/\{\{?\s*\w+\s*\}?\}/g) ?? []).sort();
 }
 
-function expectSameShape(reference: unknown, translation: unknown) {
-  const expected = flatten(reference);
-  const actual = flatten(translation);
+const PLURAL_SUFFIX = /_(zero|one|two|few|many|other)$/;
+
+/**
+ * Languages have different plural forms, so `count_one`/`count_other` in English can be right
+ * next to `count_one`/`count_two`/`count_few`/`count_other` in Slovenian. Such a key counts as
+ * one key `count` (compared by its `_other` text), plus a check that it has exactly the
+ * forms its language uses. A suffix without an `_other` form is an ordinary key.
+ */
+function pluralKeys(texts: Map<string, string>, language: string): Map<string, string> {
+  const required = new Intl.PluralRules(language).resolvedOptions().pluralCategories;
+  const result = new Map<string, string>();
+  for (const [key, text] of texts) {
+    const base = key.replace(PLURAL_SUFFIX, "");
+    if (base === key || !texts.has(`${base}_other`)) {
+      result.set(key, text);
+      continue;
+    }
+    const forms = [...texts.keys()].filter((other) => other.replace(PLURAL_SUFFIX, "") === base);
+    expect(forms.sort(), `plural forms of ${base} in ${language}`).toEqual(
+      required.map((category) => `${base}_${category}`).sort(),
+    );
+    expect(text, `${key} is empty`).not.toBe("");
+    expect(placeholders(text), `placeholders of ${key}`).toEqual(
+      placeholders(texts.get(`${base}_other`)!),
+    );
+    result.set(base, texts.get(`${base}_other`)!);
+  }
+  return result;
+}
+
+function expectSameShape(reference: unknown, translation: unknown, language: string) {
+  const expected = pluralKeys(flatten(reference), "en");
+  const actual = pluralKeys(flatten(translation), language);
   expect([...actual.keys()].sort()).toEqual([...expected.keys()].sort());
   for (const [key, text] of expected) {
     expect(placeholders(actual.get(key)!), `placeholders of ${key}`).toEqual(placeholders(text));
@@ -46,7 +76,7 @@ describe("translations", () => {
   for (const language of languages.filter((name) => name !== "en")) {
     for (const namespace of namespaces) {
       it(`${language}/${namespace} matches English`, () => {
-        expectSameShape(files[`./en/${namespace}`], files[`./${language}/${namespace}`]);
+        expectSameShape(files[`./en/${namespace}`], files[`./${language}/${namespace}`], language);
       });
     }
   }

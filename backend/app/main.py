@@ -7,6 +7,7 @@ api.include_router(health.router)
 api.include_router(me.router)
 api.include_router(trails.router)
 api.include_router(hikes.router)
+api.include_router(hikes.group_router)
 api.include_router(groups.router)
 api.include_router(stats.router)
 
