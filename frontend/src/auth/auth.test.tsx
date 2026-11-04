@@ -127,6 +127,19 @@ describe("authentication flow", () => {
     });
   });
 
+  it("does not send to sign-in while the account is being deleted", async () => {
+    hanko.validateSession.mockResolvedValue({ is_valid: true });
+    renderApp("/trails");
+    await screen.findByText("secret content");
+
+    accountDeletion.inProgress = true;
+    act(() => hanko.listeners.expired());
+    const where = screen.getByTestId("where").textContent;
+    accountDeletion.inProgress = false;
+
+    expect(where).toBe("/trails");
+  });
+
   it("does not delete twice when the app itself is deleting the account", async () => {
     hanko.validateSession.mockResolvedValue({ is_valid: true });
     const fetchMock = vi.fn();

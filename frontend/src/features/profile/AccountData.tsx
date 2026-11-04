@@ -40,15 +40,13 @@ export function AccountData({ me }: { me: Me }) {
         await api.delete("/me");
         const loginDeleted = await deleteHankoAccount();
         await logout().catch(() => undefined);
-        return loginDeleted;
+        await navigate(loginDeleted ? "/account-deleted" : "/account-deleted?login=kept", {
+          replace: true,
+        });
       } finally {
         accountDeletion.inProgress = false;
       }
     },
-    onSuccess: (loginDeleted) =>
-      void navigate(loginDeleted ? "/account-deleted" : "/account-deleted?login=kept", {
-        replace: true,
-      }),
   });
 
   function submit(event: FormEvent) {

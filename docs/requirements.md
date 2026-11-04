@@ -43,7 +43,7 @@ many users.
 | **User** | A person with an account. Required: e-mail and name/nickname. Optional: country, city. No other personal data is collected. Avatar support is planned for later. |
 | **Group** | A set of members (users) and guests. Every group has ≥ 1 admin. |
 | **Admin** | A group member with management rights. The creator is the first admin; there can be several. |
-| **Guest** | A person in a group identified only by a nickname, without an account. Can attend group hikes; cannot log in. A guest is never linked to a user account, even if that person signs up later. |
+| **Guest** | A person in a group identified only by a nickname, without an account. Can attend group hikes; cannot log in. A guest is never linked to a user account, even if that person signs up later. A hike left with no attendees, for example after its only guest is removed, is deleted. |
 | **Trail** | A route with a name, distance and elevation gain, optionally a map geometry. Identified internally by an ID; the name is unique within its scope (public trails / a user's private trails / a group's trails). A trail is always owned by its creator; group visibility only shares it with a group. Trails are never deleted, only archived. |
 | **Hike** | One completed walk of a trail: start date & time + duration. A *personal hike* belongs to one user; a *group hike* belongs to a group and lists its attendees. |
 
