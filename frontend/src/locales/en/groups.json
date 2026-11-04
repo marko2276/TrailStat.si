@@ -1,3 +1,145 @@
 {
-  "title": "Groups"
+  "title": "Groups",
+  "create": "Create group",
+  "mine": "My groups",
+  "mineEmpty": "You are not in any group yet. Create one or ask to join a public group.",
+  "public": "Public groups",
+  "publicEmpty": "There are no public groups yet.",
+  "publicNoMatch": "No public group matches your search.",
+  "search": "Search",
+  "searchLabel": "Search by name",
+  "backToGroups": "All groups",
+  "memberCount": "Members: {{count}}",
+  "settings": "Group settings",
+  "visibility": {
+    "public": "Public",
+    "private": "Private"
+  },
+  "role": {
+    "admin": "Admin",
+    "member": "Member"
+  },
+  "form": {
+    "name": "Name",
+    "description": "Description",
+    "visibility": "Visibility",
+    "visibilityHint": {
+      "public": "Anyone can find the group, see its name and totals, and ask to join. Members and hikes stay visible to members only.",
+      "private": "Only members can see the group. People join by invitation."
+    }
+  },
+  "activity": {
+    "title": "Hikes and statistics",
+    "hikes": "Group hikes",
+    "stats": "Group statistics"
+  },
+  "summary": {
+    "title": "Group totals",
+    "unavailable": "The totals are not available right now.",
+    "hikes": "Hikes",
+    "distance": "Distance",
+    "elevation": "Elevation gain",
+    "duration": "Duration"
+  },
+  "join": {
+    "title": "Join this group",
+    "request": "Ask to join",
+    "again": "Ask again",
+    "cancel": "Cancel request",
+    "pending": "Your request is waiting for an admin's decision.",
+    "rejected": "Your request was rejected."
+  },
+  "members": {
+    "title": "Members",
+    "you": "(you)",
+    "promote": "Make admin",
+    "demote": "Remove admin role",
+    "remove": "Remove",
+    "removeConfirm": "Remove from group",
+    "removeWarning": "Remove {{name}} from the group? Their past hikes stay, and they stay listed as attendees."
+  },
+  "guests": {
+    "title": "Guests",
+    "hint": "People without an account, known only by a nickname. They can be added to group hikes.",
+    "empty": "No guests yet.",
+    "nickname": "Nickname",
+    "add": "New guest's nickname",
+    "addButton": "Add guest",
+    "rename": "Rename",
+    "remove": "Remove",
+    "removeConfirm": "Remove guest",
+    "removeWarning": "Remove {{name}}? They will also be removed as an attendee from all hikes they took part in, and from the group's statistics. This cannot be undone."
+  },
+  "invitations": {
+    "title": "Invite by e-mail",
+    "email": "E-mail address",
+    "send": "Send invitation",
+    "sent": "Invitation sent to {{email}}.",
+    "pending": "Pending invitations",
+    "none": "No pending invitations.",
+    "expires": "Valid until {{date}}",
+    "expired": "Expired",
+    "resend": "Send again",
+    "resent": "A new link was sent. The previous one no longer works.",
+    "revoke": "Revoke",
+    "revokeConfirm": "Revoke invitation",
+    "revokeWarning": "The link in the e-mail will stop working."
+  },
+  "requests": {
+    "title": "Requests to join",
+    "none": "No requests are waiting.",
+    "approve": "Approve",
+    "reject": "Reject"
+  },
+  "danger": {
+    "title": "Leave or delete",
+    "leave": "Leave group",
+    "leaveConfirm": "Yes, leave",
+    "leaveWarningPublic": "You will see only the group's name and totals, and will have to ask to join again. Your past hikes and your trails stay.",
+    "leaveWarningPrivate": "You will no longer see this group, and can return only with a new invitation. Your past hikes and your trails stay.",
+    "delete": "Delete group",
+    "deleteConfirm": "Yes, delete the group",
+    "deleteIntro": "Delete {{name}}? What happens:",
+    "deleteHikes": "Group hikes stay in the personal statistics of the users who attended, no longer linked to a group. Hikes attended only by guests are deleted.",
+    "deleteGuests": "All guests are removed, along with their attendance on hikes.",
+    "deleteTrails": "Trails shared with the group stay with their creators and become private. If the creator already has a private trail with the same name, the group's name is added to it.",
+    "deleteMembers": "Members and pending invitations and requests are removed.",
+    "deleteFinal": "This cannot be undone."
+  },
+  "invitation": {
+    "title": "Group invitation",
+    "fromInviter": "{{inviter}} invited you to join the group {{group}}.",
+    "toGroup": "You are invited to join the group {{group}}.",
+    "validUntil": "The invitation is valid until {{date}}.",
+    "accept": "Accept",
+    "decline": "Decline",
+    "declined": "You declined the invitation.",
+    "wrongAccount": "This invitation was sent to a different e-mail address, or your address has not been verified. Sign in with the address that received it.",
+    "signedInAs": "You are signed in as {{email}}.",
+    "switchAccount": "Sign in with another account"
+  },
+  "errors": {
+    "not_found": "This group does not exist or you cannot see it.",
+    "group_name_required": "Enter a name for the group.",
+    "group_name_too_long": "The name is too long. It can have at most 100 characters.",
+    "description_too_long": "The description is too long. It can have at most 2000 characters.",
+    "visibility_required": "Choose who can see the group.",
+    "guest_name_required": "Enter the guest's nickname.",
+    "guest_name_too_long": "The nickname is too long. It can have at most 100 characters.",
+    "guest_name_taken": "This group already has a guest with this nickname.",
+    "invalid_email": "This does not look like a valid e-mail address.",
+    "already_member": "This person is already a member of the group.",
+    "invitation_pending": "An invitation for this address is already waiting. You can send it again from the list below.",
+    "invitation_not_pending": "This invitation is no longer pending.",
+    "invitation_not_found": "This invitation link is not valid. If you got a newer e-mail, use the link in that one.",
+    "invitation_expired": "This invitation has expired. Ask the group's admin to send a new one.",
+    "invitation_revoked": "This invitation has been revoked.",
+    "invitation_already_used": "This invitation has already been used.",
+    "invitation_email_mismatch": "This invitation was sent to a different e-mail address. Sign in with the address that received it.",
+    "email_failed": "The e-mail could not be sent, so nothing has changed. Please try again later.",
+    "join_request_pending": "You have already asked to join this group.",
+    "join_request_not_pending": "This request has already been handled.",
+    "last_admin": "A group must have at least one admin. Make someone else an admin first, or delete the group.",
+    "group_changed": "The group changed while it was being deleted. Please try again."
+  }
 }
