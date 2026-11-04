@@ -80,7 +80,8 @@
     "submit": "Ustvari pot"
   },
   "edit": {
-    "title": "Uredi pot"
+    "title": "Uredi pot",
+    "sharingCreatorOnly": "Kdo vidi to pot, lahko spremeni samo oseba, ki jo je ustvarila."
   },
   "map": {
     "title": "Zemljevid",
@@ -110,6 +111,7 @@
     "mapLabel": "Zemljevid za predogled poti"
   },
   "errors": {
+    "sharing_creator_only": "Kdo vidi to pot, lahko spremeni samo oseba, ki jo je ustvarila.",
     "trail_name_taken": "Pot s tem imenom tukaj že obstaja, morda je arhivirana. Izberite drugo ime.",
     "group_required": "Izberite skupino.",
     "group_not_allowed": "Skupino imajo lahko samo poti, ki so deljene s skupino.",

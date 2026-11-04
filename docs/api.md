@@ -22,7 +22,7 @@ An archived trail stays readable by id, for hikes that reference it. Elevation f
 are null for manual trails without those values, and for imported trails outside the elevation data.
 `owner_name` and `group_name` are also part of the detail. `geometry` is a GeoJSON LineString.
 
-Every write below returns the detail. Who may edit is `can_edit`: the creator, and for group trails
+Only the creator can change `visibility` or `group_id` (403 `sharing_creator_only`); the detail's `can_change_sharing` tells the UI. Every write below returns the detail. Who may edit is `can_edit`: the creator, and for group trails
 also the group's admins. Others get 403, or 404 if they cannot see the trail. Trails cannot be deleted.
 
 - `POST /trails` `{name, distance_m, elevation_gain_m, description?, highest_point_m?, visibility, group_id?}`

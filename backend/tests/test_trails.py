@@ -696,7 +696,8 @@ def test_admin_cannot_move_a_trail_to_a_group_they_are_not_in(
         json={"group_id": str(other_group.id)},
     )
 
-    assert response.status_code == 404
+    assert response.status_code == 403
+    assert response.json() == {"detail": "sharing_creator_only"}
 
 
 def test_visibility_change_requires_a_consistent_group(
@@ -758,7 +759,28 @@ def test_moving_into_a_scope_rechecks_the_name(
     assert after["visibility"] == start
 
 
-def test_trail_stays_visible_to_its_owner_when_an_admin_makes_it_private(
+@pytest.mark.parametrize("visibility", ["public", "private"])
+def test_group_admin_cannot_change_who_sees_a_members_trail(
+    client: TestClient,
+    create_user: CreateUser,
+    make_group: MakeGroup,
+    auth_headers: AuthHeaders,
+    post_trail: PostTrail,
+    visibility: str,
+) -> None:
+    owner, admin = create_user(), create_user()
+    group = make_group(admins=(admin,), members=(owner,))
+    trail = post_trail(owner, visibility="group", group_id=str(group.id))
+    url = f"/api/trails/{trail['id']}"
+
+    response = client.patch(url, headers=auth_headers(admin), json={"visibility": visibility})
+
+    assert response.status_code == 403
+    assert response.json() == {"detail": "sharing_creator_only"}
+    assert client.get(url, headers=auth_headers(owner)).json()["visibility"] == "group"
+
+
+def test_group_admin_can_edit_other_fields_while_sending_the_same_sharing(
     client: TestClient,
     create_user: CreateUser,
     make_group: MakeGroup,
@@ -770,13 +792,38 @@ def test_trail_stays_visible_to_its_owner_when_an_admin_makes_it_private(
     trail = post_trail(owner, visibility="group", group_id=str(group.id))
     url = f"/api/trails/{trail['id']}"
 
-    assert (
-        client.patch(url, headers=auth_headers(admin), json={"visibility": "private"}).status_code
-        == 200
+    response = client.patch(
+        url,
+        headers=auth_headers(admin),
+        json={"name": "Corrected", "visibility": "group", "group_id": str(group.id)},
     )
 
+    assert response.status_code == 200
+    assert response.json()["name"] == "Corrected"
+    assert response.json()["can_change_sharing"] is False
+    assert client.get(url, headers=auth_headers(owner)).json()["can_change_sharing"] is True
+
+
+def test_creator_who_left_the_group_still_sees_and_edits_their_trail(
+    client: TestClient,
+    session: Session,
+    create_user: CreateUser,
+    make_group: MakeGroup,
+    auth_headers: AuthHeaders,
+    post_trail: PostTrail,
+) -> None:
+    owner, admin, outsider = create_user(), create_user(), create_user()
+    group = make_group(admins=(admin,), members=(owner,))
+    trail = post_trail(owner, visibility="group", group_id=str(group.id))
+    url = f"/api/trails/{trail['id']}"
+    session.delete(session.get(GroupMembership, (group.id, owner.id)))
+    session.commit()
+
     assert client.get(url, headers=auth_headers(owner)).status_code == 200
-    assert client.get(url, headers=auth_headers(admin)).status_code == 404
+    listed = client.get("/api/trails", headers=auth_headers(owner)).json()["items"]
+    assert trail["id"] in [item["id"] for item in listed]
+    assert client.patch(url, headers=auth_headers(owner), json={"name": "Mine"}).status_code == 200
+    assert client.get(url, headers=auth_headers(outsider)).status_code == 404
 
 
 def test_ownerless_group_trail_cannot_leave_the_group(

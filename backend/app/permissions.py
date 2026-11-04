@@ -52,11 +52,12 @@ def require_admin(session: Session, group_id: uuid.UUID, user: User) -> GroupMem
 
 
 def visible_trails_clause(user: User) -> ColumnElement[bool]:
-    """Public trails, the user's own private trails, and trails shared with the user's groups."""
+    """Public trails, the user's own trails, and trails shared with the user's groups. Creators
+    keep seeing their trail after leaving the group it is shared with: it is still theirs."""
     my_groups = select(GroupMembership.group_id).where(GroupMembership.user_id == user.id)
     return or_(
         Trail.visibility == TrailVisibility.PUBLIC,
-        (Trail.visibility == TrailVisibility.PRIVATE) & (Trail.owner_user_id == user.id),
+        Trail.owner_user_id == user.id,
         (Trail.visibility == TrailVisibility.GROUP) & Trail.group_id.in_(my_groups),
     )
 

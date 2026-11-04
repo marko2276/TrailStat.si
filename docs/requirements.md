@@ -59,7 +59,11 @@ many users.
 
 Trails cannot be deleted, only **archived**. An archived trail is hidden from
 browsing and cannot be chosen for new hikes, but existing hikes keep showing it
-and it still counts in statistics. The creator can unarchive it.
+and it still counts in statistics. Whoever can edit the trail can unarchive it.
+
+Only the creator can change who sees a trail (its visibility or group): a group admin can
+correct a member's shared trail, but cannot publish it. Creators keep seeing their own trail
+after leaving the group it is shared with.
 
 ### Groups
 

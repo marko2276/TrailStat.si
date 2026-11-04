@@ -27,6 +27,7 @@ export interface TrailSummary {
 }
 
 export interface TrailDetail extends TrailSummary {
+  can_change_sharing: boolean;
   owner_name: string | null;
   group_name: string | null;
   description: string | null;

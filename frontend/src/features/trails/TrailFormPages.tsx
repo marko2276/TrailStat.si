@@ -41,6 +41,7 @@ type FieldErrors = Partial<Record<"name" | "distance" | "gain" | "highest" | "gr
 function TrailForm({
   initial,
   measurementsEditable,
+  sharingEditable = true,
   submitLabel,
   pending,
   error,
@@ -49,6 +50,7 @@ function TrailForm({
 }: {
   initial: Values;
   measurementsEditable: boolean;
+  sharingEditable?: boolean;
   submitLabel: string;
   pending: boolean;
   error: unknown;
@@ -160,11 +162,15 @@ function TrailForm({
           maxLength={MAX_DESCRIPTION}
         />
       </div>
-      <VisibilityFields
-        value={values.sharing}
-        onChange={(sharing) => set("sharing", sharing)}
-        groupError={errors.group}
-      />
+      {sharingEditable ? (
+        <VisibilityFields
+          value={values.sharing}
+          onChange={(sharing) => set("sharing", sharing)}
+          groupError={errors.group}
+        />
+      ) : (
+        <p className="muted">{t("edit.sharingCreatorOnly")}</p>
+      )}
       {error != null && <ErrorMessage error={error} ns="trails" />}
       <div className="actions">
         <button className="btn btn-primary" disabled={pending}>
@@ -241,6 +247,7 @@ function EditForm({ trail }: { trail: TrailDetail }) {
         sharing: { visibility: trail.visibility, groupId: trail.group_id ?? "" },
       }}
       measurementsEditable={manual}
+      sharingEditable={trail.can_change_sharing}
       submitLabel={t("common:save")}
       pending={update.isPending}
       error={update.error}
@@ -250,7 +257,7 @@ function EditForm({ trail }: { trail: TrailDetail }) {
           name: values.name.trim(),
           description: values.description.trim() || null,
           ...(manual ? measurementsFrom(values) : {}),
-          ...toSharing(values.sharing),
+          ...(trail.can_change_sharing ? toSharing(values.sharing) : {}),
         };
         update.mutate(changes, {
           onSuccess: () => void navigate(`/trails/${trail.id}`),

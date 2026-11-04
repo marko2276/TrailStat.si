@@ -50,6 +50,7 @@ const summary = {
 };
 
 const manualDetail = {
+  can_change_sharing: true,
   ...summary,
   owner_name: "Marko",
   group_name: null,
@@ -608,6 +609,37 @@ describe("editing a trail", () => {
     const body = api.bodyOf("PATCH /api/trails/t1") as Record<string, unknown>;
     expect(body.visibility).toBe("public");
     expect("group_id" in body).toBe(false);
+  });
+
+  it("hides sharing from a group admin who is not the creator, and does not send it", async () => {
+    const trail = {
+      ...manualDetail,
+      can_edit: true,
+      can_change_sharing: false,
+      visibility: "group",
+      group_id: "g1",
+    };
+    const api = mockApi({
+      "GET /api/trails/t1": trail,
+      "PATCH /api/trails/t1": trail,
+    });
+    render(
+      <Routes>
+        <Route path="/trails/:id/edit" element={<EditTrailPage />} />
+        <Route path="/trails/:id" element={<p>detail page</p>} />
+      </Routes>,
+      { route: "/trails/t1/edit" },
+    );
+
+    expect(
+      await screen.findByText("Only the person who created this trail can change who sees it."),
+    ).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await screen.findByText("detail page");
+    const body = api.bodyOf("PATCH /api/trails/t1") as Record<string, unknown>;
+    expect(body).not.toHaveProperty("visibility");
+    expect(body).not.toHaveProperty("group_id");
   });
 
   it("does not show the form to users who cannot edit", async () => {

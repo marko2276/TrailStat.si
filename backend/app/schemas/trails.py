@@ -60,6 +60,7 @@ class TrailSummary(ApiModel):
 
 
 class TrailDetail(TrailSummary):
+    can_change_sharing: bool
     # Null after the creator deleted their account.
     owner_name: str | None
     group_name: str | None

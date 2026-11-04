@@ -86,6 +86,7 @@ def _to_detail(session: Session, trail: Trail, user: User) -> TrailDetail:
     geometry = session.scalar(select(func.ST_AsGeoJSON(Trail.geometry)).where(Trail.id == trail.id))
     return TrailDetail(
         **_summary_fields(session, trail, user),
+        can_change_sharing=trail.owner_user_id == user.id,
         owner_name=owner.display_name if owner else None,
         group_name=group.name if group else None,
         description=trail.description,
@@ -324,6 +325,15 @@ def update_trail(
         raise ApiError(422, "osm_measurements_read_only")
 
     visibility = changes.pop("visibility", trail.visibility)
+    # A trail without an owner stays with its group: as private nobody could see it, and as
+    # public nobody could edit it.
+    if trail.owner_user_id is None and visibility != TrailVisibility.GROUP:
+        raise ApiError(422, "trail_has_no_owner")
+    # Group admins may correct a trail shared with the group, but who gets to see it is the
+    # creator's decision: otherwise an admin could publish a member's trail.
+    moves_group = "group_id" in changes and changes["group_id"] != trail.group_id
+    if (visibility != trail.visibility or moves_group) and trail.owner_user_id != user.id:
+        raise ApiError(403, "sharing_creator_only")
     if visibility == TrailVisibility.GROUP:
         group_id = changes.pop("group_id", trail.group_id)
         if group_id is None:
@@ -334,10 +344,6 @@ def update_trail(
         if changes.pop("group_id", None) is not None:
             raise ApiError(422, "group_not_allowed")
         group_id = None
-    # A trail without an owner stays with its group: as private nobody could see it, and as
-    # public nobody could edit it.
-    if trail.owner_user_id is None and visibility != TrailVisibility.GROUP:
-        raise ApiError(422, "trail_has_no_owner")
 
     if "description" in changes:
         changes["description"] = changes["description"] or None
