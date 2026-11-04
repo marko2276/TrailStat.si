@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../auth/AuthContext";
 import { api } from "../../lib/api";
+import { invalidateSharedData } from "../../lib/sharedData";
 
 export interface Me {
   id: string;
@@ -32,6 +33,10 @@ export function useUpdateMe() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (update: MeUpdate) => api.patch<Me>("/me", update),
-    onSuccess: (me) => queryClient.setQueryData(ME_KEY, me),
+    onSuccess: (me, update) => {
+      queryClient.setQueryData(ME_KEY, me);
+      // Hikes, members and statistics show the name.
+      if (update.display_name !== undefined) void invalidateSharedData(queryClient);
+    },
   });
 }

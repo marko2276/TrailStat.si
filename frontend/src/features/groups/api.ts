@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, withQuery } from "../../lib/api";
 import type { Page } from "../../lib/api";
+import { invalidateSharedData } from "../../lib/sharedData";
 
 export type GroupVisibility = "public" | "private";
 export type GroupRole = "admin" | "member";
@@ -152,17 +153,12 @@ export function useInvitationView(token: string, enabled: boolean) {
   });
 }
 
-/** A change to one group: refreshes that group's data and the lists. */
-function useGroupChange<V, R>(groupId: string, mutationFn: (variables: V) => Promise<R>) {
+/** A change to one group: other features show its name, members and guests too. */
+function useGroupChange<V, R>(mutationFn: (variables: V) => Promise<R>) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn,
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: groupKey(groupId) }),
-        queryClient.invalidateQueries({ queryKey: LISTS_KEY }),
-      ]);
-    },
+    onSuccess: () => invalidateSharedData(queryClient),
   });
 }
 
@@ -173,7 +169,7 @@ function useGroupExit(groupId: string, mutationFn: () => Promise<unknown>) {
     mutationFn,
     onSuccess: async () => {
       queryClient.removeQueries({ queryKey: groupKey(groupId) });
-      await queryClient.invalidateQueries({ queryKey: LISTS_KEY });
+      await invalidateSharedData(queryClient);
     },
   });
 }
@@ -182,12 +178,12 @@ export function useCreateGroup() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: GroupInput) => api.post<Group>("/groups", input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: LISTS_KEY }),
+    onSuccess: () => invalidateSharedData(queryClient),
   });
 }
 
 export function useUpdateGroup(id: string) {
-  return useGroupChange(id, (input: GroupInput) => api.patch<Group>(`/groups/${id}`, input));
+  return useGroupChange((input: GroupInput) => api.patch<Group>(`/groups/${id}`, input));
 }
 
 export function useDeleteGroup(id: string) {
@@ -199,60 +195,59 @@ export function useLeaveGroup(id: string) {
 }
 
 export function useSetMemberRole(id: string) {
-  return useGroupChange(id, ({ userId, role }: { userId: string; role: GroupRole }) =>
+  return useGroupChange(({ userId, role }: { userId: string; role: GroupRole }) =>
     api.patch<Member>(`/groups/${id}/members/${userId}`, { role }),
   );
 }
 
 export function useRemoveMember(id: string) {
-  return useGroupChange(id, (userId: string) => api.delete(`/groups/${id}/members/${userId}`));
+  return useGroupChange((userId: string) => api.delete(`/groups/${id}/members/${userId}`));
 }
 
 export function useAddGuest(id: string) {
-  return useGroupChange(id, (nickname: string) =>
+  return useGroupChange((nickname: string) =>
     api.post<Guest>(`/groups/${id}/guests`, { nickname }),
   );
 }
 
 export function useRenameGuest(id: string) {
-  return useGroupChange(id, ({ guestId, nickname }: { guestId: string; nickname: string }) =>
+  return useGroupChange(({ guestId, nickname }: { guestId: string; nickname: string }) =>
     api.patch<Guest>(`/groups/${id}/guests/${guestId}`, { nickname }),
   );
 }
 
 export function useRemoveGuest(id: string) {
-  return useGroupChange(id, (guestId: string) => api.delete(`/groups/${id}/guests/${guestId}`));
+  return useGroupChange((guestId: string) => api.delete(`/groups/${id}/guests/${guestId}`));
 }
 
 export function useInvite(id: string) {
-  return useGroupChange(id, (email: string) =>
+  return useGroupChange((email: string) =>
     api.post<Invitation>(`/groups/${id}/invitations`, { email }),
   );
 }
 
 export function useResendInvitation(id: string) {
-  return useGroupChange(id, (invitationId: string) =>
+  return useGroupChange((invitationId: string) =>
     api.post<Invitation>(`/groups/${id}/invitations/${invitationId}/resend`),
   );
 }
 
 export function useRevokeInvitation(id: string) {
-  return useGroupChange(id, (invitationId: string) =>
+  return useGroupChange((invitationId: string) =>
     api.delete(`/groups/${id}/invitations/${invitationId}`),
   );
 }
 
 export function useRequestToJoin(id: string) {
-  return useGroupChange(id, () => api.post<JoinRequest>(`/groups/${id}/join-requests`));
+  return useGroupChange(() => api.post<JoinRequest>(`/groups/${id}/join-requests`));
 }
 
 export function useCancelJoinRequest(id: string) {
-  return useGroupChange(id, () => api.delete(`/groups/${id}/join-requests/mine`));
+  return useGroupChange(() => api.delete(`/groups/${id}/join-requests/mine`));
 }
 
 export function useDecideJoinRequest(id: string) {
   return useGroupChange(
-    id,
     ({ requestId, decision }: { requestId: string; decision: "approve" | "reject" }) =>
       api.post<JoinRequest>(`/groups/${id}/join-requests/${requestId}/${decision}`),
   );
@@ -262,7 +257,7 @@ export function useAcceptInvitation(token: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => api.post<Group>(`/groups/invitations/${encodeURIComponent(token)}/accept`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["groups"] }),
+    onSuccess: () => invalidateSharedData(queryClient),
   });
 }
 

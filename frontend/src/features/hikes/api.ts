@@ -182,6 +182,6 @@ export function useAddGuest(groupId: string) {
   return useMutation({
     mutationFn: (nickname: string) =>
       api.post<GroupGuest>(`/groups/${groupId}/guests`, { nickname }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["groups", "guests", groupId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["groups"] }),
   });
 }

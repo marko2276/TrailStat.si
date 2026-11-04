@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, withQuery } from "../../lib/api";
 import type { Page } from "../../lib/api";
+import { invalidateSharedData } from "../../lib/sharedData";
 
 export type Visibility = "public" | "private" | "group";
 export type Scope = "all" | "public" | "mine" | "group";
@@ -128,8 +129,9 @@ function useTrailMutation<Input>(mutationFn: (input: Input) => Promise<TrailDeta
   return useMutation({
     mutationFn,
     onSuccess: (trail) => {
-      queryClient.setQueryData([...TRAILS_KEY, "detail", trail.id], trail);
-      void queryClient.invalidateQueries({ queryKey: [...TRAILS_KEY, "list"] });
+      const detail = [...TRAILS_KEY, "detail", trail.id];
+      queryClient.setQueryData(detail, trail);
+      void invalidateSharedData(queryClient, detail);
     },
   });
 }
