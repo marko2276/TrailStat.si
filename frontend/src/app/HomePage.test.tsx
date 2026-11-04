@@ -60,6 +60,26 @@ describe("HomePage", () => {
     expect(screen.queryByRole("link", { name: "All my hikes" })).toBeNull();
   });
 
+  it("suggests choosing a name while it is still the default", async () => {
+    mockApi({
+      "GET /api/me": { ...me, display_name: "Hiker" },
+      [thisYearUrl()]: totals,
+      [RECENT]: page([]),
+    });
+    render(<HomePage />);
+
+    const prompt = await screen.findByRole("link", { name: /Choose your own name/ });
+    expect(prompt.getAttribute("href")).toBe("/profile");
+  });
+
+  it("doesn't suggest a name to someone who has chosen one", async () => {
+    mockApi({ "GET /api/me": me, [thisYearUrl()]: totals, [RECENT]: page([]) });
+    render(<HomePage />);
+
+    expect(await screen.findByRole("heading", { name: "Welcome, Marko" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /Choose your own name/ })).toBeNull();
+  });
+
   it("shows an error without losing the rest of the page", async () => {
     mockApi({
       "GET /api/me": me,

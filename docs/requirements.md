@@ -82,7 +82,7 @@ Other archived trails are hidden, as archiving intends.
 | Invite by email | Admins |
 | Request to join a public group | Any user; admins approve or reject |
 | Promote / demote admins, remove members | Admins (a group always keeps ≥ 1 admin) |
-| Delete group | Admins. Group hikes remain in the personal statistics of the attending users (no longer linked to a group); guests are removed. Trails are not owned by groups, so they remain with their creators — trails shared with the deleted group become private to their creator *(assumption)*. |
+| Delete group | Admins. Group hikes remain in the personal statistics of the attending users (no longer linked to a group); guests are removed. Trails are not owned by groups, so they remain with their creators — trails shared with the deleted group become private to their creator *(assumption)*. A shared trail whose creator deleted their account becomes private and archived: it stays hidden, and hikes keep showing it. |
 | Manage guests | Admins; any member can add a new guest while recording a hike *(assumption)* |
 | Leave group | Any member (the last admin must first appoint another admin or delete the group) |
 

@@ -18,7 +18,7 @@ export function Layout() {
           {t("appName")}
         </Link>
         {signedIn && (
-          <nav aria-label="Main">
+          <nav aria-label={t("mainNavigation")}>
             {navItems.map((item) => (
               <NavLink key={item.to} to={item.to}>
                 {t(item.label)}

@@ -13,8 +13,10 @@
   "privacy": "Privacy",
   "profile": "Profile",
   "logout": "Sign out",
+  "mainNavigation": "Main",
   "home": {
-    "welcome": "Welcome, {{name}}"
+    "welcome": "Welcome, {{name}}",
+    "defaultNamePrompt": "Others see you as “{{name}}”. Choose your own name in your profile."
   },
   "notFound": "This page does not exist.",
   "auth": {

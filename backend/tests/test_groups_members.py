@@ -21,7 +21,7 @@ from app.models import (
     TrailVisibility,
     User,
 )
-from tests.conftest import AuthHeaders, CreateUser
+from tests.conftest import AuthHeaders, CreateUser, run_held_back
 from tests.groups_helpers import make_group, make_guest, make_hike, make_trail
 
 
@@ -558,3 +558,25 @@ def test_a_guest_of_another_group_is_404(
 
     assert client.patch(url, json={"nickname": "X"}, headers=headers).status_code == 404
     assert client.delete(url, headers=headers).status_code == 404
+
+
+def test_removing_a_guest_waits_for_the_group_lock(
+    test_engine: Engine, real_user: CreateUser, auth_headers: AuthHeaders
+) -> None:
+    admin = real_user()
+    with Session(test_engine) as setup:
+        group = make_group(setup, admins=[admin])
+        guest = make_guest(setup, group)
+        group_id, guest_id = group.id, guest.id
+
+    client = TestClient(app)
+    statuses: list[int] = []
+
+    def remove() -> None:
+        url = f"/api/groups/{group_id}/guests/{guest_id}"
+        statuses.append(client.delete(url, headers=auth_headers(admin)).status_code)
+
+    waiting = run_held_back(test_engine, "groups", group_id, [remove])
+
+    assert waiting == 1, "the request did not wait for the group's lock"
+    assert statuses == [204]

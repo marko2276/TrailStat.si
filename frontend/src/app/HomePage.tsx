@@ -5,7 +5,7 @@ import { ErrorMessage } from "../components/ErrorMessage";
 import { Loading } from "../components/Loading";
 import { useHikes } from "../features/hikes/api";
 import { HikeList } from "../features/hikes/HikeCard";
-import { useMe } from "../features/profile/api";
+import { DEFAULT_DISPLAY_NAME, useMe } from "../features/profile/api";
 import { useMyStats } from "../features/stats/api";
 import { periodRange } from "../features/stats/period";
 import { StatTiles } from "../features/stats/StatTiles";
@@ -69,6 +69,11 @@ export function HomePage() {
           {t("hikes:record")}
         </Link>
       </div>
+      {me?.display_name === DEFAULT_DISPLAY_NAME && (
+        <p>
+          <Link to="/profile">{t("home.defaultNamePrompt", { name: me.display_name })}</Link>
+        </p>
+      )}
       <ThisYear />
       <RecentHikes />
     </>

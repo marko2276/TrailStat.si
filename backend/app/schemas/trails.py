@@ -1,4 +1,3 @@
-import unicodedata
 import uuid
 from datetime import datetime
 from typing import Annotated, Any, Literal
@@ -6,7 +5,7 @@ from typing import Annotated, Any, Literal
 from pydantic import AfterValidator, Field, StringConstraints
 
 from app.models import TrailSource, TrailVisibility
-from app.schemas.common import ApiModel
+from app.schemas.common import ApiModel, no_control_characters, no_stray_control_characters
 
 MAX_NAME_LENGTH = 200
 MAX_DISTANCE_M = 10_000_000
@@ -18,27 +17,15 @@ MAX_HEIGHT_M = 9000
 MAX_RELATION_ID = 10**15
 
 
-def _no_control_characters(value: str) -> str:
-    if any(unicodedata.category(char) == "Cc" for char in value):
-        raise ValueError("Control characters are not allowed")
-    return value
-
-
-def _no_stray_control_characters(value: str) -> str:
-    if any(unicodedata.category(char) == "Cc" and char not in "\n\r\t" for char in value):
-        raise ValueError("Control characters are not allowed")
-    return value
-
-
 TrailName = Annotated[
     str,
     StringConstraints(strip_whitespace=True, min_length=1, max_length=MAX_NAME_LENGTH),
-    AfterValidator(_no_control_characters),
+    AfterValidator(no_control_characters),
 ]
 Description = Annotated[
     str,
     StringConstraints(strip_whitespace=True, max_length=5000),
-    AfterValidator(_no_stray_control_characters),
+    AfterValidator(no_stray_control_characters),
 ]
 DistanceM = Annotated[int, Field(gt=0, le=MAX_DISTANCE_M)]
 ElevationGainM = Annotated[int, Field(ge=0, le=MAX_ELEVATION_GAIN_M)]

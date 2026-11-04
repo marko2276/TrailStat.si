@@ -207,33 +207,51 @@ def test_same_name_for_different_owners_needs_no_suffix(
     assert trail.name == "Triglav"
 
 
-def test_ownerless_trail_becomes_public(
+def test_ownerless_trail_stays_hidden(
     client: TestClient, session: Session, create_user: CreateUser, auth_headers: AuthHeaders
 ) -> None:
-    admin = create_user()
+    """Only the group could see it, so deleting the group must not publish it."""
+    admin, stranger = create_user(), create_user()
     group = make_group(session, admins=[admin])
     trail = make_trail(session, None, "Orphan", TrailVisibility.GROUP, group)
+    hike = make_hike(session, trail, group, users=[admin])
 
     delete_group(client, session, group, admin, auth_headers)
 
-    assert trail.visibility == TrailVisibility.PUBLIC
+    assert trail.visibility == TrailVisibility.PRIVATE
+    assert trail.archived_at is not None
     assert trail.group_id is None
     assert trail.owner_user_id is None
     assert trail.name == "Orphan"
+    url = f"/api/trails/{trail.id}"
+    for user in (admin, stranger):
+        assert client.get(url, headers=auth_headers(user)).status_code == 404
+        listed = client.get(
+            "/api/trails", headers=auth_headers(user), params={"include_archived": True}
+        )
+        assert listed.json()["items"] == []
+    # The hike still shows it.
+    shown = client.get(f"/api/hikes/{hike.id}", headers=auth_headers(admin))
+    assert shown.json()["trail"]["name"] == "Orphan"
+    assert shown.json()["trail"]["archived"] is True
 
 
-def test_ownerless_trail_with_a_taken_public_name_gets_the_suffix(
+def test_ownerless_trails_never_need_a_new_name(
     client: TestClient, session: Session, create_user: CreateUser, auth_headers: AuthHeaders
 ) -> None:
     admin = create_user()
     group = make_group(session, name="Hikers", admins=[admin])
+    other_group = make_group(session, name="Others", admins=[admin])
     make_trail(session, admin, "ORPHAN", TrailVisibility.PUBLIC)
+    make_trail(session, admin, "orphan", TrailVisibility.PRIVATE)
     trail = make_trail(session, None, "Orphan", TrailVisibility.GROUP, group)
+    other = make_trail(session, None, "Orphan", TrailVisibility.GROUP, other_group)
 
     delete_group(client, session, group, admin, auth_headers)
+    delete_group(client, session, other_group, admin, auth_headers)
 
-    assert trail.name == "Orphan (Hikers)"
-    assert trail.visibility == TrailVisibility.PUBLIC
+    assert (trail.name, trail.visibility) == ("Orphan", TrailVisibility.PRIVATE)
+    assert (other.name, other.visibility) == ("Orphan", TrailVisibility.PRIVATE)
 
 
 def test_hikes_stay_with_their_user_attendees_and_lose_guests(

@@ -26,6 +26,9 @@ logger = logging.getLogger(__name__)
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
+# Not derived from the e-mail address, whose local part would show to everyone in a group.
+DEFAULT_DISPLAY_NAME = "Hiker"
+
 
 @dataclass(frozen=True)
 class TokenIdentity:
@@ -41,7 +44,9 @@ def get_jwk_client() -> jwt.PyJWKClient:
     if not settings.hanko_api_url:
         raise ApiError(status.HTTP_503_SERVICE_UNAVAILABLE, "auth_not_configured")
     url = f"{settings.hanko_api_url.rstrip('/')}/.well-known/jwks.json"
-    return jwt.PyJWKClient(url, cache_keys=True, lifespan=3600, timeout=10)
+    # Only the key set is cached, for its lifespan. `cache_keys` would keep trusting a key after
+    # Hanko removed it, for as long as the process runs.
+    return jwt.PyJWKClient(url, cache_keys=False, lifespan=3600, timeout=10)
 
 
 def _email_from_claims(claims: dict[str, Any]) -> str | None:
@@ -119,7 +124,7 @@ def get_or_create_user(session: Session, identity: TokenIdentity) -> User:
         .values(
             auth_subject=identity.subject,
             email=email,
-            display_name=email.split("@", 1)[0][:100],
+            display_name=DEFAULT_DISPLAY_NAME,
         )
         .on_conflict_do_nothing(index_elements=[User.auth_subject])
     )

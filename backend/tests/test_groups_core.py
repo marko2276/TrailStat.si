@@ -335,3 +335,16 @@ def test_unknown_group_is_404(
 ) -> None:
     response = client.get(f"/api/groups/{uuid.uuid4()}", headers=auth_headers(create_user()))
     assert response.status_code == 404
+
+
+def test_nul_characters_in_names_are_removed_not_a_server_error(
+    client: TestClient, session: Session, create_user: CreateUser, auth_headers: AuthHeaders
+) -> None:
+    headers = auth_headers(create_user())
+
+    group = client.post("/api/groups", json={"name": "A\x00B"}, headers=headers)
+    assert (group.status_code, group.json()["name"]) == (201, "AB")
+    guest = client.post(
+        f"/api/groups/{group.json()['id']}/guests", json={"nickname": "C\x00D"}, headers=headers
+    )
+    assert (guest.status_code, guest.json()["nickname"]) == (201, "CD")

@@ -4,11 +4,21 @@
 
 	# Hashed build files can be cached forever; everything else, including
 	# index.html and the service worker, must be revalidated so updates arrive.
-	@hashed path /assets/*
+	@hashed {
+		path /assets/*
+		file
+	}
 	header @hashed Cache-Control "public, max-age=31536000, immutable"
 	@other not path /assets/*
 	header @other Cache-Control "no-cache"
 
-	try_files {path} /index.html
-	file_server
+	# A missing build file is a 404. As index.html it would be cached forever under that name.
+	handle /assets/* {
+		file_server
+	}
+
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
 }

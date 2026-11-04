@@ -13,8 +13,10 @@
   "privacy": "Zasebnost",
   "profile": "Profil",
   "logout": "Odjava",
+  "mainNavigation": "Glavni meni",
   "home": {
-    "welcome": "Pozdravljeni, {{name}}"
+    "welcome": "Pozdravljeni, {{name}}",
+    "defaultNamePrompt": "Drugi vas vidijo kot »{{name}}«. V profilu si izberite svoje ime."
   },
   "notFound": "Ta stran ne obstaja.",
   "auth": {

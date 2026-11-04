@@ -17,6 +17,9 @@ export type MeUpdate = Partial<Pick<Me, "display_name" | "country" | "city">> & 
   locale?: string;
 };
 
+/** What the backend names a new user, until they choose a name. Stored, so not translated. */
+export const DEFAULT_DISPLAY_NAME = "Hiker";
+
 const ME_KEY = ["me"];
 
 export function useMe() {

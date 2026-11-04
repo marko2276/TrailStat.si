@@ -32,7 +32,7 @@ from app.models import (
     User,
 )
 from app.permissions import get_membership, get_visible_trail, require_member
-from app.schemas.common import Page
+from app.schemas.common import MAX_OFFSET, Page
 from app.schemas.hikes import HikeAttendeeRead, HikeCreate, HikeRead, HikeTrail, HikeUpdate
 
 router = APIRouter(prefix="/hikes", tags=["hikes"])
@@ -45,7 +45,7 @@ EARLIEST_START = datetime(1900, 1, 1, tzinfo=UTC)
 StartFrom = Annotated[AwareDatetime | None, Query(description="Inclusive")]
 StartTo = Annotated[AwareDatetime | None, Query(description="Exclusive")]
 Limit = Annotated[int, Query(ge=1, le=200)]
-Offset = Annotated[int, Query(ge=0)]
+Offset = Annotated[int, Query(ge=0, le=MAX_OFFSET)]
 
 
 def period_clauses(start_from: datetime | None, start_to: datetime | None) -> list[Any]:

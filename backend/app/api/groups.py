@@ -77,7 +77,7 @@ MAX_TRAIL_NAME = 200
 EMAIL_PATTERN = re.compile(r"[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}")
 
 Limit = Annotated[int, Query(ge=1, le=200)]
-Offset = Annotated[int, Query(ge=0)]
+Offset = Annotated[int, Query(ge=0, le=MAX_OFFSET)]
 
 
 # Helpers
@@ -396,22 +396,21 @@ def _free_trail_name(
 
 def _release_shared_trails(session: Session, group: Group) -> None:
     """Trails belong to their creators: private to them from now on. A trail without an owner
-    (deleted account) cannot be private to anyone, and others may rely on it, so it is public."""
+    (deleted account) stays hidden, private and archived, as only the group could see it: hikes
+    still show it. It needs no new name, as the unique index never compares trails without an
+    owner."""
     trails = session.scalars(
         select(Trail).where(Trail.group_id == group.id).order_by(Trail.created_at, Trail.id)
     ).all()
     for trail in trails:
-        scope: ColumnElement[bool]
         if trail.owner_user_id:
-            visibility = TrailVisibility.PRIVATE
             scope = (Trail.visibility == TrailVisibility.PRIVATE) & (
                 Trail.owner_user_id == trail.owner_user_id
             )
-        else:
-            visibility = TrailVisibility.PUBLIC
-            scope = Trail.visibility == TrailVisibility.PUBLIC
-        trail.name = _free_trail_name(session, trail, group.name, scope)
-        trail.visibility = visibility
+            trail.name = _free_trail_name(session, trail, group.name, scope)
+        elif trail.archived_at is None:
+            trail.archived_at = datetime.now(UTC)
+        trail.visibility = TrailVisibility.PRIVATE
         trail.group_id = None
         # One by one: the next trail's name check must see this one.
         session.flush()
@@ -602,6 +601,7 @@ def rename_guest(
 def remove_guest(
     group_id: uuid.UUID, guest_id: uuid.UUID, user: CurrentUser, session: DbSession
 ) -> None:
+    _lock_group(session, group_id)
     permissions.require_admin(session, group_id, user)
     guest = _guest_or_404(session, group_id, guest_id)
     # Their attendance goes with them. A hike they alone attended would be left with nobody,

@@ -97,3 +97,19 @@ def test_email_and_avatar_cannot_be_changed_through_profile(
 
     assert body["email"] == "keep@example.com"
     assert body["avatar_url"] is None
+
+
+@pytest.mark.parametrize("field", ["display_name", "city"])
+@pytest.mark.parametrize("character", ["\x00", "\n", "\x7f"])
+def test_control_characters_are_refused(
+    client: TestClient,
+    create_user: CreateUser,
+    auth_headers: AuthHeaders,
+    field: str,
+    character: str,
+) -> None:
+    response = client.patch(
+        "/api/me", headers=auth_headers(create_user()), json={field: f"a{character}b"}
+    )
+
+    assert response.status_code == 422
