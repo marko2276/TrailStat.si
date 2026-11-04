@@ -46,6 +46,7 @@
     "durationTooLong": "Pohod lahko traja največ 30 dni."
   },
   "errors": {
+    "hike_changed": "Ta pohod je bil hkrati spremenjen. Preverite ga in poskusite znova.",
     "trail_archived": "Ta pot je arhivirana, zato je za pohod ni mogoče izbrati.",
     "trail_not_visible_to_group": "Člani skupine te poti ne vidijo. Izberite javno pot ali pot, ki je v skupni rabi s skupino.",
     "attendees_required": "Izberite vsaj enega udeleženca.",

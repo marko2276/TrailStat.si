@@ -83,6 +83,16 @@ start_at, duration_s, notes, attendees: [{user_id, guest_id, name}], can_edit, c
 Only attended hikes are in `GET /hikes`. `PATCH` changes the fields present; attendee lists replace
 that kind of attendee. A hike can't change group. `DELETE` on a hike without a group (personal, or
 its group was deleted) removes the caller's attendance, and the hike once no attendees remain.
+A `PATCH` that conflicts with another change to the attendees gives 409 `hike_changed`.
+
+The group's privacy goes with membership. For an attendee no longer in the hike's group, `GET /hikes`
+and `GET /hikes/{id}` return only their own part: the trail, the time and the duration, themselves as
+the only attendee, null `group_id`, `group_name`, `recorded_by` and `notes`, and false `can_edit` and
+`can_delete`. Their statistics still count it.
+
+A hike shows its trail's name and measurements to everyone who can see the hike, even if the trail has
+since become invisible to them, for example after it was made private or they left its group.
+`GET /trails/{id}` is then 404.
 
 Error codes (422): `trail_archived`, `trail_not_visible_to_group`, `attendees_required`,
 `attendee_not_member`, `guest_not_in_group`, `personal_hike_attendees`, `start_at_in_future`,

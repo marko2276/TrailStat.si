@@ -1,5 +1,8 @@
 """Hikes. The rules are in docs/requirements.md, section 4.
 
+Someone who attended a group hike and has left the group keeps it in their history, but only
+their own part of it: what the group keeps private, they no longer see.
+
 A hike without a group is either a personal hike, or a group hike whose group was deleted. Both
 follow one rule: it belongs to its attendees. Only a sole attendee can edit it, and "delete"
 removes the caller's own attendance, so one person's removal doesn't erase others' history.
@@ -13,6 +16,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Query, Response
 from pydantic import AwareDatetime
 from sqlalchemy import ColumnElement, Select, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.auth import CurrentUser, DbSession
@@ -67,11 +71,18 @@ def _is_attendee(hike: Hike, user: User) -> bool:
     return any(attendee.user_id == user.id for attendee in hike.attendees)
 
 
-def _get_visible_hike(session: Session, hike_id: uuid.UUID, user: User) -> Hike:
-    """Attendees, including those who left the group, and members of the hike's group."""
-    hike = session.scalar(
-        _hike_query().where(Hike.id == hike_id).execution_options(populate_existing=True)
-    )
+def _get_visible_hike(
+    session: Session, hike_id: uuid.UUID, user: User, *, lock: bool = False
+) -> Hike:
+    """Attendees, including those who left the group, and members of the hike's group.
+
+    Changing a hike takes the lock, before checking anything: its attendees are then read after
+    the lock is granted. Otherwise two edits, each removing other attendees, or two attendees
+    removing themselves, could both pass the "someone stays" check and leave nobody."""
+    query = _hike_query().where(Hike.id == hike_id).execution_options(populate_existing=True)
+    if lock:
+        query = query.with_for_update(of=Hike)
+    hike = session.scalar(query)
     if hike is None or not (
         _is_attendee(hike, user)
         or (hike.group_id is not None and get_membership(session, hike.group_id, user) is not None)
@@ -130,6 +141,35 @@ def _serialize(session: Session, hikes: Sequence[Hike], user: User) -> list[Hike
     result = []
     for hike in hikes:
         role = roles.get(hike.group_id) if hike.group_id is not None else None
+        trail = HikeTrail(
+            id=hike.trail.id,
+            name=hike.trail.name,
+            distance_m=hike.trail.distance_m,
+            elevation_gain_m=hike.trail.elevation_gain_m,
+            archived=hike.trail.archived_at is not None,
+        )
+        if hike.group_id is not None and role is None:
+            # Only attendees get here, or they could not see the hike: they have left the group.
+            result.append(
+                HikeRead(
+                    id=hike.id,
+                    trail=trail,
+                    group_id=None,
+                    group_name=None,
+                    recorded_by=None,
+                    start_at=hike.start_at,
+                    duration_s=hike.duration_s,
+                    notes=None,
+                    attendees=[
+                        _attendee_read(attendee)
+                        for attendee in hike.attendees
+                        if attendee.user_id == user.id
+                    ],
+                    can_edit=False,
+                    can_delete=False,
+                )
+            )
+            continue
         attendees = sorted(
             (_attendee_read(attendee) for attendee in hike.attendees),
             key=lambda attendee: attendee.name.casefold(),
@@ -137,13 +177,7 @@ def _serialize(session: Session, hikes: Sequence[Hike], user: User) -> list[Hike
         result.append(
             HikeRead(
                 id=hike.id,
-                trail=HikeTrail(
-                    id=hike.trail.id,
-                    name=hike.trail.name,
-                    distance_m=hike.trail.distance_m,
-                    elevation_gain_m=hike.trail.elevation_gain_m,
-                    archived=hike.trail.archived_at is not None,
-                ),
+                trail=trail,
                 group_id=hike.group_id,
                 group_name=names.get(hike.group_id) if hike.group_id is not None else None,
                 recorded_by=hike.recorded_by,
@@ -325,7 +359,7 @@ def read_hike(hike_id: uuid.UUID, user: CurrentUser, session: DbSession) -> obje
 def update_hike(
     hike_id: uuid.UUID, body: HikeUpdate, user: CurrentUser, session: DbSession
 ) -> object:
-    hike = _get_visible_hike(session, hike_id, user)
+    hike = _get_visible_hike(session, hike_id, user, lock=True)
     if not _can_edit(hike, user, _role_in_group(session, hike, user)):
         raise ApiError(403, "forbidden")
 
@@ -360,13 +394,18 @@ def update_hike(
     if "notes" in changes:
         hike.notes = body.notes or None
 
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError as exc:
+        # An attendee was added or removed by something that doesn't take the hike's lock.
+        session.rollback()
+        raise ApiError(409, "hike_changed") from exc
     return _read_one(session, hike.id, user)
 
 
 @router.delete("/{hike_id}", status_code=204)
 def delete_hike(hike_id: uuid.UUID, user: CurrentUser, session: DbSession) -> Response:
-    hike = _get_visible_hike(session, hike_id, user)
+    hike = _get_visible_hike(session, hike_id, user, lock=True)
     if not _can_delete(hike, user, _role_in_group(session, hike, user)):
         raise ApiError(403, "forbidden")
 

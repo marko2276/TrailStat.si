@@ -1,16 +1,26 @@
 import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta, timezone
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import Connection, event, select
+from sqlalchemy import Connection, Engine, event, func, select
 from sqlalchemy.orm import Session
 
-from app.models import GroupVisibility, Hike, HikeAttendee, TrailVisibility, User
+from app.main import app
+from app.models import (
+    GroupMembership,
+    GroupRole,
+    GroupVisibility,
+    Hike,
+    HikeAttendee,
+    TrailVisibility,
+    User,
+)
 from app.schemas.hikes import MAX_DURATION_S
-from tests.conftest import AuthHeaders, CreateUser
+from tests.conftest import AuthHeaders, CreateUser, run_held_back
 from tests.test_hikes_factories import (
     PAST,
     delete_group,
@@ -710,7 +720,6 @@ class TestGroupHikeVisibility:
             session, world.trail, world.admin, world.group, users=[world.admin]
         )
         not_attended_url = f"/api/hikes/{not_attended.id}"
-        group_name = world.group.name
         group_url = f"/api/groups/{world.group.id}/hikes"
         remove_member(session, world.group, world.member)
         headers = auth_headers(world.member)
@@ -719,7 +728,6 @@ class TestGroupHikeVisibility:
         assert client.get(not_attended_url, headers=headers).status_code == 404
         listed = client.get("/api/hikes", headers=headers).json()
         assert [item["id"] for item in listed["items"]] == [str(world.hike_id)]
-        assert listed["items"][0]["group_name"] == group_name
         assert client.get(group_url, headers=headers).status_code == 404
 
 
@@ -943,3 +951,278 @@ def test_lists_do_not_run_a_query_per_hike(
     before = [queries(url) for url in urls]
     add_hikes(8)
     assert [queries(url) for url in urls] == before
+
+
+class TestFormerMember:
+    """They keep their history, without what the group keeps private."""
+
+    @pytest.fixture
+    def setup(self, session: Session, create_user: CreateUser) -> Any:
+        admin = create_user(display_name="Admin")
+        former = create_user(display_name="Former")
+        other = create_user(display_name="Other")
+        group = make_group(session, admin, members=[former, other])
+        guest = make_guest(session, group, nickname="Secret guest")
+        trail = make_trail(session, admin, TrailVisibility.GROUP, group, distance_m=7_000)
+        hike = make_hike(session, trail, other, group, users=[former, other], guests=[guest])
+        hike.notes = "Private to the group"
+        session.commit()
+        remove_member(session, group, former)
+        return SimpleNamespace(
+            admin=admin, former=former, other=other, group=group, trail=trail, hike=hike
+        )
+
+    def expected(self, setup: Any) -> dict[str, Any]:
+        return {
+            "id": str(setup.hike.id),
+            "trail": {
+                "id": str(setup.trail.id),
+                "name": setup.trail.name,
+                "distance_m": 7_000,
+                "elevation_gain_m": 500,
+                "archived": False,
+            },
+            "group_id": None,
+            "group_name": None,
+            "recorded_by": None,
+            "start_at": PAST.isoformat().replace("+00:00", "Z"),
+            "duration_s": 3600,
+            "notes": None,
+            "attendees": [{"user_id": str(setup.former.id), "guest_id": None, "name": "Former"}],
+            "can_edit": False,
+            "can_delete": False,
+        }
+
+    def test_read_one_shows_only_their_own_part(
+        self, client: TestClient, auth_headers: AuthHeaders, setup: Any
+    ) -> None:
+        response = client.get(f"/api/hikes/{setup.hike.id}", headers=auth_headers(setup.former))
+
+        assert response.status_code == 200
+        assert response.json() == self.expected(setup)
+
+    def test_list_shows_only_their_own_part(
+        self, client: TestClient, auth_headers: AuthHeaders, setup: Any
+    ) -> None:
+        response = client.get("/api/hikes", headers=auth_headers(setup.former))
+
+        assert response.json()["total"] == 1
+        assert response.json()["items"] == [self.expected(setup)]
+
+    def test_statistics_still_count_it(
+        self, client: TestClient, auth_headers: AuthHeaders, setup: Any
+    ) -> None:
+        totals = client.get("/api/stats/me", headers=auth_headers(setup.former)).json()
+
+        assert (totals["hike_count"], totals["total_distance_m"]) == (1, 7_000)
+
+    def test_cannot_edit_or_delete_it(
+        self, client: TestClient, session: Session, auth_headers: AuthHeaders, setup: Any
+    ) -> None:
+        url = f"/api/hikes/{setup.hike.id}"
+        headers = auth_headers(setup.former)
+
+        assert client.patch(url, json={"notes": "x"}, headers=headers).status_code == 403
+        assert client.delete(url, headers=headers).status_code == 403
+        session.expire_all()
+        assert setup.hike.notes == "Private to the group"
+
+    def test_current_members_still_see_everything(
+        self, client: TestClient, auth_headers: AuthHeaders, setup: Any
+    ) -> None:
+        body = client.get(f"/api/hikes/{setup.hike.id}", headers=auth_headers(setup.other)).json()
+
+        assert body["group_id"] == str(setup.group.id)
+        assert body["notes"] == "Private to the group"
+        assert {attendee["name"] for attendee in body["attendees"]} == {
+            "Former",
+            "Other",
+            "Secret guest",
+        }
+
+    def test_coming_back_restores_the_view(
+        self, client: TestClient, session: Session, auth_headers: AuthHeaders, setup: Any
+    ) -> None:
+        session.add(
+            GroupMembership(group_id=setup.group.id, user_id=setup.former.id, role=GroupRole.MEMBER)
+        )
+        session.commit()
+
+        body = client.get(f"/api/hikes/{setup.hike.id}", headers=auth_headers(setup.former)).json()
+
+        assert body["notes"] == "Private to the group"
+        assert len(body["attendees"]) == 3
+
+    def test_export_has_only_their_own_part_too(
+        self, client: TestClient, auth_headers: AuthHeaders, setup: Any
+    ) -> None:
+        export = client.get("/api/me/export", headers=auth_headers(setup.former)).json()
+
+        assert [(hike["group"], hike["notes"]) for hike in export["hikes"]] == [(None, None)]
+        assert export["hikes"][0]["trail"] == setup.trail.name
+
+
+class TestControlCharactersInNotes:
+    def test_nul_is_refused_when_recording(
+        self, post: Any, session: Session, create_user: CreateUser
+    ) -> None:
+        user = create_user()
+        trail = make_trail(session, user)
+
+        assert post(user, trail.id, notes="a\x00b").status_code == 422
+
+    def test_nul_is_refused_when_editing(
+        self,
+        client: TestClient,
+        session: Session,
+        create_user: CreateUser,
+        auth_headers: AuthHeaders,
+    ) -> None:
+        user = create_user()
+        hike = make_hike(session, make_trail(session, user), user, users=[user])
+
+        response = client.patch(
+            f"/api/hikes/{hike.id}", json={"notes": "a\x00b"}, headers=auth_headers(user)
+        )
+
+        assert response.status_code == 422
+
+    def test_notes_may_have_several_lines(
+        self, post: Any, session: Session, create_user: CreateUser
+    ) -> None:
+        user = create_user()
+        trail = make_trail(session, user)
+
+        response = post(user, trail.id, notes="first\nsecond\ttab")
+
+        assert response.status_code == 201
+        assert response.json()["notes"] == "first\nsecond\ttab"
+
+
+class TestConcurrentChanges:
+    """With real connections and commits. Never a hike with nobody on it."""
+
+    def attendee_count(self, engine: Engine, hike_id: uuid.UUID) -> int:
+        with Session(engine) as check:
+            count = check.scalar(
+                select(func.count())
+                .select_from(HikeAttendee)
+                .where(HikeAttendee.hike_id == hike_id)
+            )
+        return count or 0
+
+    def test_two_edits_keeping_different_attendees(
+        self, test_engine: Engine, real_user: CreateUser, auth_headers: AuthHeaders
+    ) -> None:
+        admin, first, second = real_user(), real_user(), real_user()
+        with Session(test_engine) as setup:
+            group = make_group(setup, admin, members=[first, second])
+            trail = make_trail(setup, admin, TrailVisibility.GROUP, group)
+            hike = make_hike(setup, trail, admin, group, users=[first, second])
+            hike_id = hike.id
+        client = TestClient(app)
+        statuses: list[int] = []
+
+        def keep(user: User) -> Callable[[], None]:
+            def call() -> None:
+                response = client.patch(
+                    f"/api/hikes/{hike_id}",
+                    json={"attendee_user_ids": [str(user.id)]},
+                    headers=auth_headers(admin),
+                )
+                statuses.append(response.status_code)
+
+            return call
+
+        waiting = run_held_back(test_engine, "hikes", hike_id, [keep(first), keep(second)])
+
+        assert waiting == 2, "the requests did not wait for the hike's lock"
+        assert statuses == [200, 200]
+        assert self.attendee_count(test_engine, hike_id) == 1
+
+    def test_two_attendees_removing_themselves(
+        self, test_engine: Engine, real_user: CreateUser, auth_headers: AuthHeaders
+    ) -> None:
+        first, second = real_user(), real_user()
+        with Session(test_engine) as setup:
+            trail = make_trail(setup, first)
+            hike = make_hike(setup, trail, first, users=[first, second])
+            hike_id = hike.id
+        client = TestClient(app)
+        statuses: list[int] = []
+
+        def remove(user: User) -> Callable[[], None]:
+            def call() -> None:
+                response = client.delete(f"/api/hikes/{hike_id}", headers=auth_headers(user))
+                statuses.append(response.status_code)
+
+            return call
+
+        waiting = run_held_back(test_engine, "hikes", hike_id, [remove(first), remove(second)])
+
+        assert waiting == 2, "the requests did not wait for the hike's lock"
+        assert statuses == [204, 204]
+        with Session(test_engine) as check:
+            assert check.get(Hike, hike_id) is None
+        assert self.attendee_count(test_engine, hike_id) == 0
+
+    def test_two_admins_deleting_a_group_hike(
+        self, test_engine: Engine, real_user: CreateUser, auth_headers: AuthHeaders
+    ) -> None:
+        first, second = real_user(), real_user()
+        with Session(test_engine) as setup:
+            group = make_group(setup, first)
+            setup.add(GroupMembership(group_id=group.id, user_id=second.id, role=GroupRole.ADMIN))
+            setup.commit()
+            trail = make_trail(setup, first, TrailVisibility.GROUP, group)
+            hike = make_hike(setup, trail, first, group, users=[first])
+            hike_id = hike.id
+        client = TestClient(app)
+        statuses: list[int] = []
+
+        def remove(user: User) -> Callable[[], None]:
+            def call() -> None:
+                response = client.delete(f"/api/hikes/{hike_id}", headers=auth_headers(user))
+                statuses.append(response.status_code)
+
+            return call
+
+        waiting = run_held_back(test_engine, "hikes", hike_id, [remove(first), remove(second)])
+
+        assert waiting == 2, "the requests did not wait for the hike's lock"
+        assert sorted(statuses) == [204, 404]
+
+    def test_a_duplicate_attendee_is_a_conflict_not_a_crash(
+        self,
+        client: TestClient,
+        session: Session,
+        create_user: CreateUser,
+        auth_headers: AuthHeaders,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """The lock prevents this between edits. Anything else that adds an attendee could still
+        get in first, so it is simulated here, right before the commit."""
+        admin = create_user()
+        member = create_user()
+        member_id = member.id
+        group = make_group(session, admin, members=[member])
+        trail = make_trail(session, admin, TrailVisibility.GROUP, group)
+        hike = make_hike(session, trail, admin, group, users=[member])
+        hike_id = hike.id
+
+        def add_again(_session: Session, target: Hike, *_args: Any) -> None:
+            target.attendees.append(HikeAttendee(user_id=member_id))
+
+        monkeypatch.setattr("app.api.hikes._apply_group_attendees", add_again)
+
+        response = client.patch(
+            f"/api/hikes/{hike_id}",
+            json={"attendee_user_ids": [str(member_id)]},
+            headers=auth_headers(admin),
+        )
+
+        assert (response.status_code, response.json()["detail"]) == (409, "hike_changed")
+        count = session.scalar(
+            select(func.count()).select_from(HikeAttendee).where(HikeAttendee.hike_id == hike_id)
+        )
+        assert count == 1

@@ -88,6 +88,12 @@ after leaving the group it is shared with.
 | Delete | The user | Admins only |
 | Counts in personal stats | Yes | Yes — for every attending member |
 
+Someone who attended a group hike and has since left the group (or was removed from it) keeps it
+in their history and their personal statistics, but only their own part of it: the trail, the time,
+the duration and themselves. The group, the notes, who recorded it and the other attendees are no
+longer shown, in the app or in the data export, and they cannot edit or delete it. If the group is
+deleted, the hike follows the rule for hikes without a group.
+
 ## 5. Statistics
 
 Available for a user (all their hikes, personal and group) and for each group
