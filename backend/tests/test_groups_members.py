@@ -546,18 +546,18 @@ def test_removing_the_only_attendee_of_a_hike_removes_the_hike_from_the_totals(
     guest = make_guest(session, group, "Bob")
     other_guest = make_guest(session, group, "Ann")
     trail = make_trail(session, admin, "T", TrailVisibility.GROUP, group)
-    alone = make_hike(session, trail, group, guests=[guest])
-    together = make_hike(session, trail, group, guests=[guest, other_guest])
-    without_them = make_hike(session, trail, group, guests=[other_guest])
+    alone = make_hike(session, trail, group, guests=[guest]).id
+    together = make_hike(session, trail, group, guests=[guest, other_guest]).id
+    without_them = make_hike(session, trail, group, guests=[other_guest]).id
     headers = auth_headers(admin)
 
     response = client.delete(f"/api/groups/{group.id}/guests/{guest.id}", headers=headers)
 
     assert response.status_code == 204
     session.expire_all()
-    assert session.get(Hike, alone.id) is None
-    assert session.get(Hike, together.id) is not None
-    assert session.get(Hike, without_them.id) is not None
+    assert session.get(Hike, alone) is None
+    assert session.get(Hike, together) is not None
+    assert session.get(Hike, without_them) is not None
     summary = client.get(f"/api/stats/groups/{group.id}/summary", headers=headers).json()
     assert summary["hike_count"] == 2
 
