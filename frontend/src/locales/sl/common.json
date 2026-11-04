@@ -14,7 +14,6 @@
   "profile": "Profil",
   "mainNavigation": "Glavna navigacija",
   "logout": "Odjava",
-  "mainNavigation": "Glavni meni",
   "home": {
     "welcome": "Pozdravljeni, {{name}}",
     "defaultNamePrompt": "Drugi vas vidijo kot »{{name}}«. V profilu si izberite svoje ime."

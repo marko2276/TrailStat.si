@@ -46,8 +46,10 @@ test("a group from creation to invitation, roles and removal", async ({ browser 
   await expect(a.page.getByRole("status").filter({ hasText: `Invitation sent to ${bEmail}.` })).toBeVisible();
   await expect(a.page.getByText(bEmail).last()).toBeVisible();
   const mail = await invitationFromMail(bEmail);
-  expect(mail.subject).toBe(`Anna invited you to the group ${groupName} on TrailStat`);
-  expect(mail.text).toContain(`Anna invited you to join the hiking group "${groupName}"`);
+  // Names are chosen by users, so they stay out of the subject, to prevent abuse as spam.
+  expect(mail.subject).toBe("Invitation to a hiking group on TrailStat");
+  expect(mail.text).toContain(`Name of the group: "${groupName}"`);
+  expect(mail.text).toContain('Invited by the user named: "Anna"');
   expect(mail.text).toContain("The link is valid for 7 days.");
 
   // Signed-in C got the forwarded link: no name of the group, and no way in.
@@ -167,7 +169,7 @@ test("an invitation e-mail uses the language of the recipient, or else of the in
   const newcomer = uniqueEmail("newcomer");
   await inviter.post(`/groups/${group.id}/invitations`, { email: newcomer });
   const forNewcomer = await invitationFromMail(newcomer);
-  expect(forNewcomer.subject).toContain("vas vabi v skupino");
+  expect(forNewcomer.subject).toBe("Povabilo v pohodniško skupino na TrailStatu");
   expect(forNewcomer.text).toContain("Pozdravljeni!");
   expect(forNewcomer.text).not.toContain("Hello");
 
@@ -175,7 +177,7 @@ test("an invitation e-mail uses the language of the recipient, or else of the in
   const english = await ApiClient.as(uniqueEmail("english"), "Ed", "en");
   await inviter.post(`/groups/${group.id}/invitations`, { email: english.email });
   const forEnglish = await invitationFromMail(english.email);
-  expect(forEnglish.subject).toContain("invited you to the group");
+  expect(forEnglish.subject).toBe("Invitation to a hiking group on TrailStat");
   expect(forEnglish.text).toContain("Hello,");
 
   // And the other way round.
@@ -184,7 +186,7 @@ test("an invitation e-mail uses the language of the recipient, or else of the in
   const other = await englishAdmin.createGroup(unique("Language"));
   await englishAdmin.post(`/groups/${other.id}/invitations`, { email: slovene.email });
   const forSlovene = await invitationFromMail(slovene.email);
-  expect(forSlovene.subject).toContain("vas vabi v skupino");
+  expect(forSlovene.subject).toBe("Povabilo v pohodniško skupino na TrailStatu");
 
   // A Slovenian reader sees the invitation in Slovenian too.
   const { page, problems } = await signedInPage(browser, slovene.email, { locale: "en-US" });

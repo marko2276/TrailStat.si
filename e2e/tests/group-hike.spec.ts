@@ -311,7 +311,10 @@ test("attendees change, members leave and guests go, and the numbers follow", as
   await boris.page.goto("/stats");
   await expect(tile(boris.page, "Hikes")).toHaveText("1");
   const card = hikeCard(boris.page, trailName);
-  await expect(card).toContainText(groupName);
+  // Boris keeps his own record, but no longer sees the group's details.
+  await expect(card).toContainText(trailName);
+  await expect(card).not.toContainText(groupName);
+  await expect(card).not.toContainText("Metka");
   await expect(card.getByRole("link", { name: "Edit" })).toHaveCount(0);
   await expect(card.getByRole("button")).toHaveCount(0);
 

@@ -19,6 +19,6 @@ describe("Layout", () => {
     await i18n.changeLanguage("sl");
     render(<Layout />);
 
-    expect(screen.getByRole("navigation", { name: "Glavni meni" })).toBeTruthy();
+    expect(screen.getByRole("navigation", { name: "Glavna navigacija" })).toBeTruthy();
   });
 });
