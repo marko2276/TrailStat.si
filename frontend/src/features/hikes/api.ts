@@ -137,8 +137,15 @@ export function useDeleteHike(id: string) {
   });
 }
 
+/** The most the API returns at once. The picker filters by group, so it needs more than it shows. */
+const TRAIL_SEARCH_LIMIT = 200;
+
 export function useTrailSearch(query: string) {
-  const url = withQuery("/trails", { q: query, include_archived: false, limit: PAGE_SIZE });
+  const url = withQuery("/trails", {
+    q: query,
+    include_archived: false,
+    limit: TRAIL_SEARCH_LIMIT,
+  });
   return useQuery({
     queryKey: ["trails", "search", url],
     queryFn: () => api.get<Page<TrailOption>>(url),

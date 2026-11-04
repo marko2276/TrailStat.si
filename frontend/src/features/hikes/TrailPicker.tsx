@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { ErrorMessage } from "../../components/ErrorMessage";
 import { Loading } from "../../components/Loading";
 import { useFormat } from "../../lib/format";
-import { useTrailSearch } from "./api";
+import { PAGE_SIZE, useTrailSearch } from "./api";
 import type { TrailOption } from "./api";
 
 const SEARCH_DELAY_MS = 250;
@@ -32,8 +32,9 @@ export function TrailPicker({ groupId, onChoose }: Props) {
   const format = useFormat();
   const [query, setQuery] = useState("");
   const { data, error } = useTrailSearch(useDebounced(query.trim()));
-  const trails =
-    data?.items.filter((trail) => !trail.archived && isTrailForGroup(trail, groupId)) ?? [];
+  const trails = (
+    data?.items.filter((trail) => !trail.archived && isTrailForGroup(trail, groupId)) ?? []
+  ).slice(0, PAGE_SIZE);
 
   return (
     <div className="field">

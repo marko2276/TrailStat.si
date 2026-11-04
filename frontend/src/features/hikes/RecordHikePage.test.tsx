@@ -21,7 +21,7 @@ afterAll(() => {
   process.env.TZ = originalZone;
 });
 
-const TRAILS = "GET /api/trails?include_archived=false&limit=20";
+const TRAILS = "GET /api/trails?include_archived=false&limit=200";
 const GROUPS = "GET /api/groups?scope=mine&limit=200";
 const group = { id: "g1", name: "Planinci", is_member: true };
 const base = {
@@ -120,7 +120,7 @@ describe("recording a personal hike", () => {
   it("searches trails, without archived ones", async () => {
     const api = mockApi({
       ...base,
-      "GET /api/trails?q=vog&include_archived=false&limit=20": page([
+      "GET /api/trails?q=vog&include_archived=false&limit=200": page([
         makeTrail({ id: "t2", name: "Vogel" }),
         makeTrail({ id: "t3", name: "Vogar", archived: true }),
       ]),
@@ -133,7 +133,7 @@ describe("recording a personal hike", () => {
     expect(await screen.findByRole("button", { name: /Vogel/ })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Vogar/ })).toBeNull();
     expect(api.requests.map((request) => request.key)).toContain(
-      "GET /api/trails?q=vog&include_archived=false&limit=20",
+      "GET /api/trails?q=vog&include_archived=false&limit=200",
     );
   });
 
@@ -521,5 +521,24 @@ describe("editing", () => {
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("You are not allowed");
     expect(within(document.body).queryByText("The list")).toBeNull();
+  });
+});
+
+describe("choosing a trail for a group hike", () => {
+  it("finds the group's trail behind many that the group can't use", async () => {
+    const own = Array.from({ length: 25 }, (_, index) =>
+      makeTrail({ id: `own${index}`, name: `Aaa ${index}`, visibility: "private" }),
+    );
+    const shared = makeTrail({
+      id: "shared",
+      name: "Zadnja pot",
+      visibility: "group",
+      group_id: "g1",
+    });
+    mockApi({ ...base, ...groupReplies, [TRAILS]: page([...own, shared]) });
+    renderRecord("/hikes/new?group=g1");
+
+    expect(await screen.findByRole("button", { name: /Zadnja pot/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Aaa 0/ })).toBeNull();
   });
 });
