@@ -81,7 +81,8 @@
   },
   "edit": {
     "title": "Edit trail",
-    "sharingCreatorOnly": "Only the person who created this trail can change who sees it."
+    "sharingCreatorOnly": "Only the person who created this trail can change who sees it.",
+    "measurementsInUse": "Distance and elevation can no longer be changed: other people's hikes on this trail count them in their statistics."
   },
   "map": {
     "title": "Map",
@@ -112,6 +113,7 @@
   },
   "errors": {
     "sharing_creator_only": "Only the person who created this trail can change who sees it.",
+    "trail_measurements_in_use": "Distance and elevation can no longer be changed: other people's hikes on this trail count them in their statistics.",
     "trail_name_taken": "A trail with this name already exists here, possibly archived. Choose another name.",
     "group_required": "Choose a group.",
     "group_not_allowed": "Only trails shared with a group can have a group.",

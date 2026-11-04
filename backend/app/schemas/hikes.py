@@ -2,15 +2,19 @@ import uuid
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import AwareDatetime, ConfigDict, Field, StringConstraints
+from pydantic import AfterValidator, AwareDatetime, ConfigDict, Field, StringConstraints
 
-from app.schemas.common import ApiModel
+from app.schemas.common import ApiModel, no_stray_control_characters
 
 # Long enough for a multi-day trek, short enough to catch typing errors.
 MAX_DURATION_S = 30 * 24 * 3600
 
 DurationSeconds = Annotated[int, Field(gt=0, le=MAX_DURATION_S)]
-Notes = Annotated[str, StringConstraints(strip_whitespace=True, max_length=5000)]
+Notes = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, max_length=5000),
+    AfterValidator(no_stray_control_characters),
+]
 
 
 class HikeTrail(ApiModel):
@@ -30,6 +34,9 @@ class HikeAttendeeRead(ApiModel):
 
 
 class HikeRead(ApiModel):
+    """For someone who attended a group hike and has since left the group, only their own part:
+    no group, no notes, no recorder and no other attendees."""
+
     id: uuid.UUID
     trail: HikeTrail
     group_id: uuid.UUID | None

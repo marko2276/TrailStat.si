@@ -72,9 +72,9 @@ def test_slovenian_text_survives_encoding() -> None:
 
     parsed = parsed_headers(message.as_bytes())
 
-    assert "Špela" in parsed["Subject"]
-    assert "Čežek" in parsed["Subject"]
-    assert "pohodniški skupini »Čežek«" in parsed.get_content()
+    assert parsed["Subject"] == "Povabilo v pohodniško skupino na TrailStatu"
+    assert "Ime skupine: »Čežek«" in parsed.get_content()
+    assert "»Špela«" in parsed.get_content()
 
 
 @pytest.mark.parametrize("locale", ["en", "sl"])
@@ -124,9 +124,32 @@ def test_dollar_signs_in_names_stay_literal() -> None:
         locale="en",
     )
 
-    assert message["Subject"].count("secret") == 0
-    assert "$link" in message["Subject"]
+    assert "secret" not in body_of(message).split("https://x/invitations/secret")[0]
+    assert '"$link"' in body_of(message)
     assert "${inviter}" in body_of(message)
+
+
+@pytest.mark.parametrize("locale", ["en", "sl"])
+def test_invitation_subject_has_no_user_controlled_text(locale: str) -> None:
+    """The subject is what shows without opening the message, in someone else's inbox."""
+    message = invitation_email(
+        to="a@b.si",
+        group="Claim your prize",
+        inviter="Your bank",
+        link="https://x/invitations/t",
+        valid_days=7,
+        locale=locale,
+    )
+
+    assert "prize" not in message["Subject"]
+    assert "bank" not in message["Subject"]
+    assert "TrailStat" in message["Subject"]
+    body = body_of(message)
+    assert ("Claim your prize" in body) and ("Your bank" in body)
+    # Quoted, on lines that say what they are.
+    quote = {"en": ('"', '"'), "sl": ("»", "«")}[locale]
+    assert f"{quote[0]}Claim your prize{quote[1]}" in body
+    assert f"{quote[0]}Your bank{quote[1]}" in body
 
 
 def test_group_name_with_newlines_through_the_api_cannot_inject_headers(

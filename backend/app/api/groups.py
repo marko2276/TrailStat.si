@@ -15,7 +15,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app import permissions
-from app.auth import CurrentUser, DbSession, VerifiedEmail
+from app.auth import CurrentUser, DbSession, TokenClaims, VerifiedEmail
 from app.config import get_settings
 from app.errors import ApiError
 from app.models import (
@@ -34,7 +34,8 @@ from app.models import (
     TrailVisibility,
     User,
 )
-from app.schemas.common import Page
+from app.rate_limit import INVITATION_EMAILS, JOIN_REQUESTS, enforce
+from app.schemas.common import MAX_OFFSET, Page
 from app.schemas.groups import (
     GroupCreate,
     GroupOut,
@@ -76,7 +77,7 @@ MAX_TRAIL_NAME = 200
 EMAIL_PATTERN = re.compile(r"[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}")
 
 Limit = Annotated[int, Query(ge=1, le=200)]
-Offset = Annotated[int, Query(ge=0)]
+Offset = Annotated[int, Query(ge=0, le=MAX_OFFSET)]
 
 
 # Helpers
@@ -201,17 +202,19 @@ def _require_usable(invitation: GroupInvitation) -> None:
         raise ApiError(410, "invitation_expired")
 
 
-def _email_matches(invitation: GroupInvitation, verified_email: str | None) -> bool:
-    return verified_email is not None and verified_email.strip().lower() == invitation.email.lower()
+def _email_matches(invitation: GroupInvitation, email: str | None) -> bool:
+    return email is not None and email.strip().lower() == invitation.email.lower()
 
 
 @router.get("/invitations/{token}", response_model=InvitationView)
-def view_invitation(token: str, verified_email: VerifiedEmail, session: DbSession) -> object:
+def view_invitation(token: str, claims: TokenClaims, session: DbSession) -> object:
     invitation = _invitation_by_token(session, token)
     _require_usable(invitation)
-    if not _email_matches(invitation, verified_email):
+    address_matches = _email_matches(invitation, claims.email)
+    if not (address_matches and claims.email_verified):
         return InvitationView(
             email_matches=False,
+            email_verified=not address_matches,
             group_id=None,
             group_name=None,
             inviter_name=None,
@@ -221,6 +224,7 @@ def view_invitation(token: str, verified_email: VerifiedEmail, session: DbSessio
     inviter = session.get(User, invitation.invited_by) if invitation.invited_by else None
     return InvitationView(
         email_matches=True,
+        email_verified=True,
         group_id=group.id,
         group_name=group.name,
         inviter_name=inviter.display_name if inviter else None,
@@ -392,22 +396,21 @@ def _free_trail_name(
 
 def _release_shared_trails(session: Session, group: Group) -> None:
     """Trails belong to their creators: private to them from now on. A trail without an owner
-    (deleted account) cannot be private to anyone, and others may rely on it, so it is public."""
+    (deleted account) stays hidden, private and archived, as only the group could see it: hikes
+    still show it. It needs no new name, as the unique index never compares trails without an
+    owner."""
     trails = session.scalars(
         select(Trail).where(Trail.group_id == group.id).order_by(Trail.created_at, Trail.id)
     ).all()
     for trail in trails:
-        scope: ColumnElement[bool]
         if trail.owner_user_id:
-            visibility = TrailVisibility.PRIVATE
             scope = (Trail.visibility == TrailVisibility.PRIVATE) & (
                 Trail.owner_user_id == trail.owner_user_id
             )
-        else:
-            visibility = TrailVisibility.PUBLIC
-            scope = Trail.visibility == TrailVisibility.PUBLIC
-        trail.name = _free_trail_name(session, trail, group.name, scope)
-        trail.visibility = visibility
+            trail.name = _free_trail_name(session, trail, group.name, scope)
+        elif trail.archived_at is None:
+            trail.archived_at = datetime.now(UTC)
+        trail.visibility = TrailVisibility.PRIVATE
         trail.group_id = None
         # One by one: the next trail's name check must see this one.
         session.flush()
@@ -463,6 +466,20 @@ def list_members(group_id: uuid.UUID, user: CurrentUser, session: DbSession) -> 
     )
 
 
+def _settle_pending_invitations(
+    session: Session, group_id: uuid.UUID, user: User, status: InvitationStatus
+) -> None:
+    session.execute(
+        update(GroupInvitation)
+        .where(
+            GroupInvitation.group_id == group_id,
+            GroupInvitation.status == InvitationStatus.PENDING,
+            func.lower(GroupInvitation.email) == user.email.lower(),
+        )
+        .values(status=status)
+    )
+
+
 def _member_or_404(session: Session, group_id: uuid.UUID, user_id: uuid.UUID) -> GroupMembership:
     membership = session.get(GroupMembership, (group_id, user_id))
     if membership is None:
@@ -501,6 +518,10 @@ def remove_member(
     membership = _member_or_404(session, group_id, user_id)
     _forbid_losing_last_admin(session, membership)
     session.delete(membership)
+    # An old invitation must not let someone the admins removed back in.
+    _settle_pending_invitations(
+        session, group_id, session.get_one(User, user_id), InvitationStatus.REVOKED
+    )
     session.commit()
 
 
@@ -580,6 +601,7 @@ def rename_guest(
 def remove_guest(
     group_id: uuid.UUID, guest_id: uuid.UUID, user: CurrentUser, session: DbSession
 ) -> None:
+    _lock_group(session, group_id)
     permissions.require_admin(session, group_id, user)
     guest = _guest_or_404(session, group_id, guest_id)
     # Their attendance goes with them. A hike they alone attended would be left with nobody,
@@ -656,6 +678,7 @@ def _issue_invitation(
     """Gives out a new token and e-mails it, after the commit. If sending fails, the admin gets
     503 and things are as before: a new invitation is gone, so it can simply be retried, and a
     re-issued one still has its previous link, which the recipient may already have."""
+    enforce(INVITATION_EMAILS, inviter.id)
     token = secrets.token_urlsafe(32)
     token_hash = _hash_token(token)
     previous: dict[str, object] | None = None
@@ -866,6 +889,7 @@ def request_to_join(
     group = permissions.get_visible_group(session, group_id, user)
     if permissions.get_membership(session, group_id, user) is not None:
         raise ApiError(409, "already_member")
+    enforce(JOIN_REQUESTS, user.id)
     request = JoinRequest(group_id=group_id, user_id=user.id, status=JoinRequestStatus.PENDING)
     session.add(request)
     try:
@@ -956,6 +980,8 @@ def approve_join_request(
     if permissions.get_membership(session, group_id, requester) is None:
         session.add(GroupMembership(group_id=group_id, user_id=requester.id, role=GroupRole.MEMBER))
     request.status = JoinRequestStatus.APPROVED
+    # They are in now, so a link sent earlier has served its purpose.
+    _settle_pending_invitations(session, group_id, requester, InvitationStatus.ACCEPTED)
     result = _join_request_out(request, requester.display_name)
     session.commit()
     return result

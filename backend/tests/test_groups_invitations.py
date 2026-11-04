@@ -484,6 +484,7 @@ def test_invitee_sees_the_invitation(
     body = client.get(f"/api/groups/invitations/{token}", headers=auth_headers(invitee)).json()
 
     assert body["email_matches"] is True
+    assert body["email_verified"] is True
     assert body["group_id"] == str(group.id)
     assert body["group_name"] == "Secret club"
     assert body["inviter_name"] == "Ana"
@@ -612,11 +613,33 @@ def test_an_address_that_is_not_verified_cannot_accept(
     response = client.post(f"/api/groups/invitations/{token}/accept", headers=headers)
 
     assert view.json()["email_matches"] is False
+    assert view.json()["email_verified"] is False
     assert view.json()["group_name"] is None
     assert response.status_code == 403
     assert response.json()["detail"] == "invitation_email_mismatch"
     user = session.scalars(select(User).where(User.auth_subject == "impostor")).one()
     assert session.get(GroupMembership, (group.id, user.id)) is None
+
+
+def test_a_different_address_is_not_told_to_verify_itself(
+    client: TestClient,
+    rsa_key: rsa.RSAPrivateKey,
+    invitation: tuple[Group, str, str, User],
+) -> None:
+    """Verified or not, it isn't the invited address: verifying it would not help."""
+    _, _, token, _ = invitation
+    for verified in (True, False):
+        address = {"address": "other@example.com", "is_primary": True, "is_verified": verified}
+        claims = {"sub": "other", "exp": int(time.time()) + 3600, "email": address}
+        jwt_token = jwt.encode(claims, rsa_key, algorithm="RS256", headers={"kid": KEY_ID})
+
+        view = client.get(
+            f"/api/groups/invitations/{token}", headers={"Authorization": f"Bearer {jwt_token}"}
+        ).json()
+
+        assert view["email_matches"] is False
+        assert view["email_verified"] is True
+        assert view["group_name"] is None
 
 
 def test_declining_keeps_the_invitee_out_and_uses_up_the_link(
@@ -828,3 +851,113 @@ def test_no_account_uses_the_inviters_language(
 
     assert "Pozdravljeni" in body_of(outbox.messages[0])
     assert "skupino" in outbox.messages[0]["Subject"]
+
+
+# An old invitation must not undo a decision by the admins
+
+
+def test_old_invitation_does_not_let_a_removed_member_back_in(
+    client: TestClient,
+    session: Session,
+    create_user: CreateUser,
+    auth_headers: AuthHeaders,
+    outbox: FakeSender,
+) -> None:
+    admin = create_user()
+    invitee = create_user(email="Invitee@Example.com")
+    group = make_group(session, visibility=GroupVisibility.PUBLIC, admins=[admin])
+    invited = client.post(
+        f"/api/groups/{group.id}/invitations",
+        json={"email": "invitee@example.com"},
+        headers=auth_headers(admin),
+    )
+    assert invited.status_code == 201
+    token = token_in(outbox.messages[-1])
+
+    request = client.post(f"/api/groups/{group.id}/join-requests", headers=auth_headers(invitee))
+    approved = client.post(
+        f"/api/groups/{group.id}/join-requests/{request.json()['id']}/approve",
+        headers=auth_headers(admin),
+    )
+    assert approved.status_code == 200
+    removed = client.delete(
+        f"/api/groups/{group.id}/members/{invitee.id}", headers=auth_headers(admin)
+    )
+    assert removed.status_code == 204
+
+    response = client.post(f"/api/groups/invitations/{token}/accept", headers=auth_headers(invitee))
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "invitation_already_used"
+    assert session.get(GroupMembership, (group.id, invitee.id)) is None
+
+
+def test_approving_a_join_request_settles_only_that_address_in_that_group(
+    client: TestClient,
+    session: Session,
+    create_user: CreateUser,
+    auth_headers: AuthHeaders,
+    outbox: FakeSender,
+) -> None:
+    admin = create_user()
+    invitee = create_user(email="invitee@example.com")
+    group = make_group(session, visibility=GroupVisibility.PUBLIC, admins=[admin])
+    elsewhere = make_group(session, name="Elsewhere", admins=[admin])
+    for group_id, email in (
+        (group.id, "invitee@example.com"),
+        (group.id, "someone@example.com"),
+        (elsewhere.id, "invitee@example.com"),
+    ):
+        response = client.post(
+            f"/api/groups/{group_id}/invitations",
+            json={"email": email},
+            headers=auth_headers(admin),
+        )
+        assert response.status_code == 201
+
+    request = client.post(f"/api/groups/{group.id}/join-requests", headers=auth_headers(invitee))
+    client.post(
+        f"/api/groups/{group.id}/join-requests/{request.json()['id']}/approve",
+        headers=auth_headers(admin),
+    )
+
+    session.expire_all()
+    statuses = {
+        (row.group_id, row.email): row.status for row in session.scalars(select(GroupInvitation))
+    }
+    assert statuses == {
+        (group.id, "invitee@example.com"): InvitationStatus.ACCEPTED,
+        (group.id, "someone@example.com"): InvitationStatus.PENDING,
+        (elsewhere.id, "invitee@example.com"): InvitationStatus.PENDING,
+    }
+
+
+def test_removing_a_member_revokes_their_pending_invitation(
+    client: TestClient,
+    session: Session,
+    create_user: CreateUser,
+    auth_headers: AuthHeaders,
+    outbox: FakeSender,
+) -> None:
+    """The address of an account can change, so a member may have a pending invitation."""
+    admin = create_user()
+    member = create_user(email="old@example.com")
+    group = make_group(session, admins=[admin], members=[member])
+    response = client.post(
+        f"/api/groups/{group.id}/invitations",
+        json={"email": "new@example.com"},
+        headers=auth_headers(admin),
+    )
+    assert response.status_code == 201
+    token = token_in(outbox.messages[-1])
+    member.email = "New@Example.com"
+    session.commit()
+
+    removed = client.delete(
+        f"/api/groups/{group.id}/members/{member.id}", headers=auth_headers(admin)
+    )
+    assert removed.status_code == 204
+
+    accepted = client.post(f"/api/groups/invitations/{token}/accept", headers=auth_headers(member))
+    assert (accepted.status_code, accepted.json()["detail"]) == (410, "invitation_revoked")
+    assert session.get(GroupMembership, (group.id, member.id)) is None

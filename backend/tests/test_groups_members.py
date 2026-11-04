@@ -3,14 +3,12 @@
 import threading
 import time
 import uuid
-from collections.abc import Iterator
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, delete, select, text
 from sqlalchemy.orm import Session
 
-from app.db import get_session
 from app.main import app
 from app.models import (
     Group,
@@ -23,7 +21,7 @@ from app.models import (
     TrailVisibility,
     User,
 )
-from tests.conftest import AuthHeaders, CreateUser
+from tests.conftest import AuthHeaders, CreateUser, run_held_back
 from tests.groups_helpers import make_group, make_guest, make_hike, make_trail
 
 
@@ -268,19 +266,6 @@ def test_leaving_keeps_past_hikes_attendance_and_trails(
 
 
 # The race: two admins demote each other at once
-
-
-@pytest.fixture
-def real_sessions(test_engine: Engine) -> Iterator[None]:
-    """Every request gets its own connection, with real commits, as in production."""
-
-    def _session() -> Iterator[Session]:
-        with Session(test_engine) as session:
-            yield session
-
-    app.dependency_overrides[get_session] = _session
-    yield
-    app.dependency_overrides.pop(get_session, None)
 
 
 def test_two_admins_demoting_each_other_leaves_one_admin(
@@ -573,3 +558,25 @@ def test_a_guest_of_another_group_is_404(
 
     assert client.patch(url, json={"nickname": "X"}, headers=headers).status_code == 404
     assert client.delete(url, headers=headers).status_code == 404
+
+
+def test_removing_a_guest_waits_for_the_group_lock(
+    test_engine: Engine, real_user: CreateUser, auth_headers: AuthHeaders
+) -> None:
+    admin = real_user()
+    with Session(test_engine) as setup:
+        group = make_group(setup, admins=[admin])
+        guest = make_guest(setup, group)
+        group_id, guest_id = group.id, guest.id
+
+    client = TestClient(app)
+    statuses: list[int] = []
+
+    def remove() -> None:
+        url = f"/api/groups/{group_id}/guests/{guest_id}"
+        statuses.append(client.delete(url, headers=auth_headers(admin)).status_code)
+
+    waiting = run_held_back(test_engine, "groups", group_id, [remove])
+
+    assert waiting == 1, "the request did not wait for the group's lock"
+    assert statuses == [204]

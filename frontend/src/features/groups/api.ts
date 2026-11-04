@@ -47,6 +47,8 @@ export interface Invitation {
 
 export interface InvitationView {
   email_matches: boolean;
+  /** false only if the address is the invited one but has not been verified */
+  email_verified: boolean;
   group_id: string | null;
   group_name: string | null;
   inviter_name: string | null;

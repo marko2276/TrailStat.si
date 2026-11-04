@@ -12,7 +12,7 @@ docker compose up --build
 | URL | What |
 |---|---|
 | http://localhost:5173 | App, with live reload |
-| http://localhost:8000/api/docs | API documentation |
+| http://localhost:8000/api/docs | API documentation (off in production) |
 | http://localhost:5173/api/health/ready | Readiness check through the frontend proxy |
 | http://localhost:8025 | Mailpit: the inbox for all e-mail sent in development |
 
@@ -69,6 +69,26 @@ docker compose build
 Set `COMPOSE_FILE=compose.yaml` in `.env`, then `docker compose up --build`.
 The app is served by Caddy on http://localhost:8080.
 
+## Production checklist
+
+Set these in `.env` on the server, and use only `compose.yaml` (`COMPOSE_FILE=compose.yaml`):
+
+- `ENVIRONMENT=production`. The backend then refuses to start, and says why, unless the next three
+  are set. It also turns off `/api/docs` and `/api/openapi.json`: the docs page loads Swagger UI
+  from a third-party CDN, which NFR-3 rules out. Anything but `development` or `production` is
+  refused too. The default is `development`, which checks nothing.
+- `HANKO_API_URL` and `HANKO_AUDIENCE`: the self-hosted Hanko (NFR-3, NFR-5) and the app's domain.
+  Without an audience, tokens issued for other sites would be accepted.
+- `SMTP_HOST` and the other `SMTP_*` settings: without them invitations fail, and join request
+  notifications are lost with only a line in the log.
+- `APP_URL`: the `https://` address of the app, for links in e-mails.
+- `SITE_ADDRESS` (the bare domain, for automatic HTTPS), with `HTTP_PORT=80` and `HTTPS_PORT=443`.
+- `POSTGRES_PASSWORD`, generated as `.env.example` says, and a nightly backup (see [Backups](#backups)).
+- `VITE_MAP_STYLE_URL` if needed. It is read when the frontend is built.
+
+The rate limits in `backend/app/rate_limit.py` and the limit on concurrent Overpass calls are counted
+per process, so run a single backend process, as `compose.yaml` does.
+
 ## Elevation data
 
 Trail imports read elevation from Copernicus GLO-30 DEM GeoTIFF files in `data/dem/` (or the directory
@@ -95,8 +115,10 @@ low: Triglav (2864 m) is 2801 m at its highest pixel.
 ## OpenStreetMap and maps
 
 `OVERPASS_URL` sets the Overpass server, by default the public `overpass-api.de`. Be gentle with it:
-tests use a mocked transport, and the app never repeats a failed query on its own. OSM data must be
-credited (ODbL), and the map and every imported trail do so.
+tests use a mocked transport, and the app never repeats a failed query on its own. Calls are limited
+to 3 at a time and 20 per user per minute. No database connection is held during them, so a slow
+Overpass can't stall the rest of the API. OSM data must be credited (ODbL), and the map and every
+imported trail do so.
 
 `VITE_MAP_STYLE_URL` sets the MapLibre style, by default OpenFreeMap's `liberty`, which needs no key.
 It is read at build time. Do not use openstreetmap.org's tile servers: their policy forbids it.

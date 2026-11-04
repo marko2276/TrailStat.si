@@ -1,9 +1,9 @@
 import uuid
 from typing import Annotated
 
-from pydantic import Field, StringConstraints
+from pydantic import AfterValidator, Field, StringConstraints
 
-from app.schemas.common import ApiModel
+from app.schemas.common import ApiModel, no_control_characters
 
 
 class Me(ApiModel):
@@ -16,8 +16,16 @@ class Me(ApiModel):
     locale: str | None
 
 
-DisplayName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
-City = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
+DisplayName = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=100),
+    AfterValidator(no_control_characters),
+]
+City = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=100),
+    AfterValidator(no_control_characters),
+]
 
 
 class MeUpdate(ApiModel):

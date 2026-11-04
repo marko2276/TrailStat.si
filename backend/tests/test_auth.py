@@ -1,3 +1,9 @@
+import io
+import json
+from collections.abc import Iterator
+from contextlib import contextmanager
+from types import SimpleNamespace
+from typing import Any
 from unittest.mock import MagicMock
 
 import httpx
@@ -5,6 +11,7 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
+from jwt.algorithms import RSAAlgorithm
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -36,7 +43,8 @@ def test_first_login_creates_user(
 
     assert response.status_code == 200
     assert response.json()["email"] == "marko@example.com"
-    assert response.json()["display_name"] == "marko"
+    # Not the local part of the address, which would show to everyone in the user's groups.
+    assert response.json()["display_name"] == "Hiker"
     assert session.scalar(select(User).where(User.auth_subject == "sub-1")) is not None
 
 
@@ -168,3 +176,36 @@ def test_unconfigured_hanko_fails_closed(
 
     assert response.status_code == 503
     assert response.json() == {"detail": "auth_not_configured"}
+
+
+def test_a_key_removed_from_the_key_set_stops_being_trusted(
+    monkeypatch: pytest.MonkeyPatch, rsa_key: rsa.RSAPrivateKey, make_token: MakeToken
+) -> None:
+    """Keeps the real client: only the HTTP request for the key set is replaced."""
+    jwk = {**json.loads(RSAAlgorithm.to_jwk(rsa_key.public_key())), "kid": KEY_ID, "use": "sig"}
+    other = rsa.generate_private_key(public_exponent=65537, key_size=2048).public_key()
+    other_jwk = {**json.loads(RSAAlgorithm.to_jwk(other)), "kid": "other", "use": "sig"}
+    served = {"keys": [jwk, other_jwk]}
+
+    @contextmanager
+    def fake_open(*args: Any, **kwargs: Any) -> Iterator[io.StringIO]:
+        yield io.StringIO(json.dumps(served))
+
+    monkeypatch.setattr("urllib.request.build_opener", lambda *_: SimpleNamespace(open=fake_open))
+    monkeypatch.setattr(
+        auth, "get_settings", lambda: SimpleNamespace(hanko_api_url="https://hanko.test")
+    )
+    REAL_GET_JWK_CLIENT.cache_clear()
+    try:
+        client = REAL_GET_JWK_CLIENT()
+        token = make_token()
+        assert client.get_signing_key_from_jwt(token).key_id == KEY_ID
+
+        served["keys"] = [other_jwk]
+        assert client.jwk_set_cache is not None
+        client.jwk_set_cache.lifespan = 0  # the key set's lifespan has passed
+
+        with pytest.raises(jwt.PyJWKClientError):
+            client.get_signing_key_from_jwt(token)
+    finally:
+        REAL_GET_JWK_CLIENT.cache_clear()

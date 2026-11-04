@@ -41,6 +41,7 @@ type FieldErrors = Partial<Record<"name" | "distance" | "gain" | "highest" | "gr
 function TrailForm({
   initial,
   measurementsEditable,
+  measurementsInUse = false,
   sharingEditable = true,
   submitLabel,
   pending,
@@ -49,7 +50,10 @@ function TrailForm({
   onSubmit,
 }: {
   initial: Values;
+  /** Whether the measurement fields are shown: imported trails get theirs from the route. */
   measurementsEditable: boolean;
+  /** Shows them, but they can't be changed. */
+  measurementsInUse?: boolean;
   sharingEditable?: boolean;
   submitLabel: string;
   pending: boolean;
@@ -71,7 +75,7 @@ function TrailForm({
     if (values.sharing.visibility === "group" && !values.sharing.groupId) {
       found.group = t("validation.group");
     }
-    if (measurementsEditable) {
+    if (measurementsEditable && !measurementsInUse) {
       const km = parseNumber(values.distanceKm);
       // Below half a metre rounds to nothing.
       if (!(km * 1000 >= 0.5 && km <= MAX_DISTANCE_KM)) found.distance = t("validation.distance");
@@ -122,6 +126,7 @@ function TrailForm({
             <input
               id="trail-distance"
               inputMode="decimal"
+              disabled={measurementsInUse}
               value={values.distanceKm}
               onChange={(event) => set("distanceKm", event.target.value)}
               aria-invalid={errors.distance ? true : undefined}
@@ -133,6 +138,7 @@ function TrailForm({
             <input
               id="trail-gain"
               inputMode="numeric"
+              disabled={measurementsInUse}
               value={values.gain}
               onChange={(event) => set("gain", event.target.value)}
               aria-invalid={errors.gain ? true : undefined}
@@ -144,12 +150,14 @@ function TrailForm({
             <input
               id="trail-highest"
               inputMode="numeric"
+              disabled={measurementsInUse}
               value={values.highest}
               onChange={(event) => set("highest", event.target.value)}
               aria-invalid={errors.highest ? true : undefined}
             />
             {fieldError("highest")}
           </div>
+          {measurementsInUse && <p className="muted">{t("edit.measurementsInUse")}</p>}
         </>
       )}
       <div className="field">
@@ -247,6 +255,7 @@ function EditForm({ trail }: { trail: TrailDetail }) {
         sharing: { visibility: trail.visibility, groupId: trail.group_id ?? "" },
       }}
       measurementsEditable={manual}
+      measurementsInUse={manual && !trail.can_edit_measurements}
       sharingEditable={trail.can_change_sharing}
       submitLabel={t("common:save")}
       pending={update.isPending}
@@ -256,7 +265,7 @@ function EditForm({ trail }: { trail: TrailDetail }) {
         const changes: TrailUpdate = {
           name: values.name.trim(),
           description: values.description.trim() || null,
-          ...(manual ? measurementsFrom(values) : {}),
+          ...(manual && trail.can_edit_measurements ? measurementsFrom(values) : {}),
           ...(trail.can_change_sharing ? toSharing(values.sharing) : {}),
         };
         update.mutate(changes, {

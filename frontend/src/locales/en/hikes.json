@@ -44,6 +44,7 @@
     "durationTooLong": "A hike can last at most 30 days."
   },
   "errors": {
+    "hike_changed": "This hike was changed at the same time. Check it and try again.",
     "trail_archived": "This trail is archived and can't be chosen for a hike.",
     "trail_not_visible_to_group": "The group's members can't see this trail. Choose a public trail or one shared with the group.",
     "attendees_required": "Select at least one attendee.",

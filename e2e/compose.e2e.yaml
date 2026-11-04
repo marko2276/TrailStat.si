@@ -22,6 +22,8 @@ services:
 
   backend:
     environment:
+      # The stand-ins here are what production refuses: no SMTP, no audience, plain HTTP.
+      ENVIRONMENT: development
       HANKO_API_URL: http://mock-hanko:4000
       OVERPASS_URL: http://mock-hanko:4000/api/interpreter
       SMTP_HOST: mailpit

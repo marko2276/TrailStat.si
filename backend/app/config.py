@@ -1,4 +1,6 @@
 from functools import lru_cache
+from typing import Literal
+from urllib.parse import urlsplit
 
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings
@@ -6,6 +8,9 @@ from sqlalchemy import URL
 
 
 class Settings(BaseSettings):
+    # Production refuses to start without what it needs: see `production_problems`.
+    environment: Literal["development", "production"] = "development"
+
     postgres_host: str = "db"
     postgres_port: int = 5432
     postgres_user: str = "trailstat"
@@ -27,6 +32,29 @@ class Settings(BaseSettings):
     smtp_starttls: bool = True
     # The address of the app, for links in e-mails.
     app_url: str = "http://localhost:5173"
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment == "production"
+
+    def production_problems(self) -> list[str]:
+        """What is wrong for production. Without these the app would seem to work: without an
+        audience it accepts tokens for other sites, and without SMTP it sends no notifications."""
+        if not self.is_production:
+            return []
+        problems = [
+            f"{name} must be set"
+            for name, value in (
+                ("HANKO_API_URL", self.hanko_api_url),
+                ("HANKO_AUDIENCE", self.hanko_audience),
+                ("SMTP_HOST", self.smtp_host),
+            )
+            if not value.strip()
+        ]
+        app_url = urlsplit(self.app_url.strip())
+        if app_url.scheme != "https" or not app_url.netloc:
+            problems.append("APP_URL must be an https:// address")
+        return problems
 
     @property
     def database_url(self) -> URL:

@@ -176,6 +176,29 @@ describe("deleting", () => {
     expect((await screen.findByRole("alert")).textContent).toContain("You are not allowed");
   });
 
+  it("shows a hike from a group the user has left, with only their own part", async () => {
+    mockApi({
+      [LIST]: page([
+        makeHike({
+          recorded_by: null,
+          group_id: null,
+          group_name: null,
+          notes: null,
+          can_edit: false,
+          can_delete: false,
+        }),
+      ]),
+    });
+    render(<HikesPage />);
+
+    const card = (await screen.findByRole("heading", { name: "Triglav" })).closest("article")!;
+    expect(card.textContent).not.toContain("Attended by");
+    expect(card.querySelector(".badge")).toBeNull();
+    expect(screen.queryByRole("link", { name: "Edit" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Remove from my history" })).toBeNull();
+  });
+
   it("says it only affects your history when the group is gone and others attended", async () => {
     mockApi({
       [LIST]: page([

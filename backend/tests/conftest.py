@@ -8,9 +8,10 @@ Authentication uses real signed tokens with a test RSA key; only fetching Hanko'
 keys is replaced.
 """
 
+import threading
 import time
 import uuid
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from email.message import EmailMessage
 from pathlib import Path
 from typing import Any
@@ -24,7 +25,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import Connection, Engine, create_engine, text
 from sqlalchemy.orm import Session
 
-from app import auth
+from app import auth, rate_limit
 from app.config import get_settings
 from app.db import get_session
 from app.main import app
@@ -66,6 +67,68 @@ def session(test_engine: Engine) -> Iterator[Session]:
         yield db_session
         db_session.close()
         transaction.rollback()
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limits() -> Iterator[None]:
+    """The limiter lives in the process, and would otherwise carry over between tests."""
+    rate_limit.reset()
+    yield
+    rate_limit.reset()
+
+
+@pytest.fixture
+def real_sessions(test_engine: Engine) -> Iterator[None]:
+    """Every request gets its own connection, with real commits, as in production. For tests of
+    concurrency. Nothing is rolled back here, so what they created is removed afterwards. Don't
+    combine with the `session`, `client` or `create_user` fixtures: use `real_user`."""
+
+    def _session() -> Iterator[Session]:
+        with Session(test_engine) as session:
+            yield session
+
+    app.dependency_overrides[get_session] = _session
+    yield
+    app.dependency_overrides.pop(get_session, None)
+    with test_engine.begin() as connection:
+        connection.execute(text("TRUNCATE users, groups, trails CASCADE"))
+
+
+def wait_for_lock_waiters(engine: Engine, count: int, timeout_s: float = 15) -> int:
+    """Waits until `count` connections are blocked on a lock. Returns how many there were."""
+    waiting = 0
+    with engine.connect() as observer:
+        observer = observer.execution_options(isolation_level="AUTOCOMMIT")
+        deadline = time.monotonic() + timeout_s
+        while waiting < count and time.monotonic() < deadline:
+            waiting = (
+                observer.scalar(
+                    text(
+                        "SELECT count(*) FROM pg_stat_activity "
+                        "WHERE wait_event_type = 'Lock' AND datname = current_database()"
+                    )
+                )
+                or 0
+            )
+            time.sleep(0.05)
+    return waiting
+
+
+def run_held_back(
+    engine: Engine, table: str, row_id: uuid.UUID, calls: Sequence[Callable[[], None]]
+) -> int:
+    """Holds a row's lock while the calls start, so that they all reach it before any proceeds.
+    Without locking they would not wait. Returns how many did."""
+    with engine.connect() as holder:
+        holder.execute(text(f"SELECT id FROM {table} WHERE id = :id FOR UPDATE"), {"id": row_id})
+        threads = [threading.Thread(target=call) for call in calls]
+        for thread in threads:
+            thread.start()
+        waiting = wait_for_lock_waiters(engine, len(calls))
+        holder.rollback()
+    for thread in threads:
+        thread.join(timeout=30)
+    return waiting
 
 
 @pytest.fixture
@@ -152,6 +215,26 @@ def auth_headers(make_token: MakeToken) -> AuthHeaders:
         return {"Authorization": f"Bearer {token}"}
 
     return _headers
+
+
+@pytest.fixture
+def real_user(test_engine: Engine, real_sessions: None) -> CreateUser:
+    """Create a committed user, for use with `real_sessions`."""
+
+    def _create(display_name: str = "Test User", email: str | None = None, **fields: Any) -> User:
+        unique = uuid.uuid4().hex
+        with Session(test_engine, expire_on_commit=False) as session:
+            user = User(
+                auth_subject=f"hanko-{unique}",
+                email=email or f"{unique}@example.com",
+                display_name=display_name,
+                **fields,
+            )
+            session.add(user)
+            session.commit()
+        return user
+
+    return _create
 
 
 class FakeSender:

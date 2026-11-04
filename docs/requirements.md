@@ -65,6 +65,13 @@ Only the creator can change who sees a trail (its visibility or group): a group 
 correct a member's shared trail, but cannot publish it. Creators keep seeing their own trail
 after leaving the group it is shared with.
 
+Statistics take distance and elevation from the trail. So once a hike on a trail has an attendee
+other than the person editing it (another user or a guest), its distance, elevation gain and loss,
+and highest point can no longer be changed. Its name and description still can.
+
+Listing archived trails shows only those the user can edit, the only ones they could bring back.
+Other archived trails are hidden, as archiving intends.
+
 ### Groups
 
 | Action | Who |
@@ -75,7 +82,7 @@ after leaving the group it is shared with.
 | Invite by email | Admins |
 | Request to join a public group | Any user; admins approve or reject |
 | Promote / demote admins, remove members | Admins (a group always keeps ≥ 1 admin) |
-| Delete group | Admins. Group hikes remain in the personal statistics of the attending users (no longer linked to a group); guests are removed. Trails are not owned by groups, so they remain with their creators — trails shared with the deleted group become private to their creator *(assumption)*. |
+| Delete group | Admins. Group hikes remain in the personal statistics of the attending users (no longer linked to a group); guests are removed. Trails are not owned by groups, so they remain with their creators — trails shared with the deleted group become private to their creator *(assumption)*. A shared trail whose creator deleted their account becomes private and archived: it stays hidden, and hikes keep showing it. |
 | Manage guests | Admins; any member can add a new guest while recording a hike *(assumption)* |
 | Leave group | Any member (the last admin must first appoint another admin or delete the group) |
 
@@ -87,6 +94,12 @@ after leaving the group it is shared with.
 | Edit | The user | The member who recorded it and admins *(assumption)* |
 | Delete | The user | Admins only |
 | Counts in personal stats | Yes | Yes — for every attending member |
+
+Someone who attended a group hike and has since left the group (or was removed from it) keeps it
+in their history and their personal statistics, but only their own part of it: the trail, the time,
+the duration and themselves. The group, the notes, who recorded it and the other attendees are no
+longer shown, in the app or in the data export, and they cannot edit or delete it. If the group is
+deleted, the hike follows the rule for hikes without a group.
 
 ## 5. Statistics
 

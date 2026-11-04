@@ -26,6 +26,9 @@ logger = logging.getLogger(__name__)
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
+# Not derived from the e-mail address, whose local part would show to everyone in a group.
+DEFAULT_DISPLAY_NAME = "Hiker"
+
 
 @dataclass(frozen=True)
 class TokenIdentity:
@@ -41,7 +44,9 @@ def get_jwk_client() -> jwt.PyJWKClient:
     if not settings.hanko_api_url:
         raise ApiError(status.HTTP_503_SERVICE_UNAVAILABLE, "auth_not_configured")
     url = f"{settings.hanko_api_url.rstrip('/')}/.well-known/jwks.json"
-    return jwt.PyJWKClient(url, cache_keys=True, lifespan=3600, timeout=10)
+    # Only the key set is cached, for its lifespan. `cache_keys` would keep trusting a key after
+    # Hanko removed it, for as long as the process runs.
+    return jwt.PyJWKClient(url, cache_keys=False, lifespan=3600, timeout=10)
 
 
 def _email_from_claims(claims: dict[str, Any]) -> str | None:
@@ -119,7 +124,7 @@ def get_or_create_user(session: Session, identity: TokenIdentity) -> User:
         .values(
             auth_subject=identity.subject,
             email=email,
-            display_name=email.split("@", 1)[0][:100],
+            display_name=DEFAULT_DISPLAY_NAME,
         )
         .on_conflict_do_nothing(index_elements=[User.auth_subject])
     )
@@ -136,17 +141,21 @@ def get_current_user(
     return get_or_create_user(session, decode_token(credentials.credentials))
 
 
-def get_verified_email(
+def get_token_claims(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
-) -> str | None:
-    """The address Hanko says this user has proven to own. `User.email` is not enough for
-    decisions that depend on owning an address: it is copied from the token unconditionally."""
+) -> TokenIdentity:
     if credentials is None:
         raise ApiError(status.HTTP_401_UNAUTHORIZED, "not_authenticated")
-    identity = decode_token(credentials.credentials)
+    return decode_token(credentials.credentials)
+
+
+def get_verified_email(identity: Annotated[TokenIdentity, Depends(get_token_claims)]) -> str | None:
+    """The address Hanko says this user has proven to own. `User.email` is not enough for
+    decisions that depend on owning an address: it is copied from the token unconditionally."""
     return identity.email if identity.email_verified else None
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+TokenClaims = Annotated[TokenIdentity, Depends(get_token_claims)]
 VerifiedEmail = Annotated[str | None, Depends(get_verified_email)]
 DbSession = Annotated[Session, Depends(get_session)]

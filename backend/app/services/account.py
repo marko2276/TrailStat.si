@@ -35,11 +35,12 @@ def export_account(session: Session, user: User) -> dict[str, Any]:
         .options(selectinload(Hike.trail))
         .order_by(Hike.start_at)
     ).all()
-    group_names = dict(
+    # Of a group they have left, as in the hikes API, they keep only their own part of a hike.
+    my_group_names = dict(
         session.execute(
-            select(Group.id, Group.name).where(
-                Group.id.in_({hike.group_id for hike in hikes if hike.group_id})
-            )
+            select(Group.id, Group.name)
+            .join(GroupMembership, GroupMembership.group_id == Group.id)
+            .where(GroupMembership.user_id == user.id)
         )
         .tuples()
         .all()
@@ -84,8 +85,10 @@ def export_account(session: Session, user: User) -> dict[str, Any]:
                 "elevation_gain_m": hike.trail.elevation_gain_m,
                 "start_at": hike.start_at.isoformat(),
                 "duration_s": hike.duration_s,
-                "notes": hike.notes,
-                "group": group_names.get(hike.group_id) if hike.group_id else None,
+                "notes": (
+                    hike.notes if hike.group_id is None or hike.group_id in my_group_names else None
+                ),
+                "group": my_group_names.get(hike.group_id) if hike.group_id else None,
             }
             for hike in hikes
         ],
