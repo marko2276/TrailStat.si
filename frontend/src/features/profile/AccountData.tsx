@@ -40,11 +40,14 @@ export function AccountData({ me }: { me: Me }) {
         await api.delete("/me");
         const loginDeleted = await deleteHankoAccount();
         await logout().catch(() => undefined);
+        // The confirmation page ends accountDeletion.inProgress once it is showing. Ending it
+        // here would let the sign-out redirect win before this navigation has rendered.
         await navigate(loginDeleted ? "/account-deleted" : "/account-deleted?login=kept", {
           replace: true,
         });
-      } finally {
+      } catch (error) {
         accountDeletion.inProgress = false;
+        throw error;
       }
     },
   });
