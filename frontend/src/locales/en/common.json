@@ -11,6 +11,7 @@
   "next": "Next",
   "previous": "Previous",
   "profile": "Profile",
+  "mainNavigation": "Main navigation",
   "logout": "Sign out",
   "home": {
     "welcome": "Welcome, {{name}}"

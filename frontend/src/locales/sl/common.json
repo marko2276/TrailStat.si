@@ -11,6 +11,7 @@
   "next": "Naprej",
   "previous": "Nazaj",
   "profile": "Profil",
+  "mainNavigation": "Glavna navigacija",
   "logout": "Odjava",
   "home": {
     "welcome": "Pozdravljeni, {{name}}"
