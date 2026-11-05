@@ -29,6 +29,10 @@ bearer_scheme = HTTPBearer(auto_error=False)
 # Not derived from the e-mail address, whose local part would show to everyone in a group.
 DEFAULT_DISPLAY_NAME = "Hiker"
 
+# Our clock and Hanko's are never exactly equal. Without this, a token used right after signing in
+# can look issued in the future and be refused, which sends the user back to the login page.
+TOKEN_CLOCK_LEEWAY_SECONDS = 60
+
 
 @dataclass(frozen=True)
 class TokenIdentity:
@@ -79,6 +83,7 @@ def decode_token(token: str) -> TokenIdentity:
             signing_key,
             algorithms=["RS256"],
             audience=audience or None,
+            leeway=TOKEN_CLOCK_LEEWAY_SECONDS,
             options={"require": ["exp", "sub"], "verify_aud": bool(audience)},
         )
     except jwt.InvalidTokenError as exc:
