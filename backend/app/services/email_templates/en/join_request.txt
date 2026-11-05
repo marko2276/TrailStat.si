@@ -1,9 +1,9 @@
-Subject: $requester asked to join $group on TrailStat
+Subject: $requester asked to join $group on TrailStat.si
 Hello,
 
-$requester asked to join your group "$group" on TrailStat.
+$requester asked to join your group "$group" on TrailStat.si.
 
 Open the group to approve or reject the request:
 $link
 
-TrailStat
+TrailStat.si

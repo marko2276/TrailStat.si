@@ -2,6 +2,7 @@
 
 import smtplib
 from email import message_from_bytes
+from email.message import EmailMessage
 from email.policy import default as default_policy
 from pathlib import Path
 from typing import Any
@@ -31,6 +32,16 @@ EVIL = "Evil\r\nBcc: victim@example.com\r\n\r\nInjected body"
 
 def parsed_headers(raw: bytes) -> Any:
     return message_from_bytes(raw, policy=default_policy)
+
+
+def test_default_sender_is_a_well_formed_address() -> None:
+    # A dot in a display name is only valid in quotes: spam filters may penalise the bare form.
+    message = EmailMessage()
+    message["From"] = Settings.model_fields["smtp_from"].default
+
+    assert not message["From"].defects
+    assert message["From"].addresses[0].display_name == "TrailStat.si"
+    assert message["From"].addresses[0].addr_spec == "noreply@trailstat.si"
 
 
 def test_every_language_has_every_template() -> None:
@@ -72,7 +83,7 @@ def test_slovenian_text_survives_encoding() -> None:
 
     parsed = parsed_headers(message.as_bytes())
 
-    assert parsed["Subject"] == "Povabilo v pohodniško skupino na TrailStatu"
+    assert parsed["Subject"] == "Povabilo v pohodniško skupino na strani TrailStat.si"
     assert "Ime skupine: »Čežek«" in parsed.get_content()
     assert "»Špela«" in parsed.get_content()
 

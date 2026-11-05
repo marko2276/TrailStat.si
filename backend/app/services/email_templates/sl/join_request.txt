@@ -1,9 +1,9 @@
-Subject: Prošnja za včlanitev v skupino $group na TrailStatu
+Subject: Prošnja za včlanitev v skupino $group na strani TrailStat.si
 Pozdravljeni!
 
-$requester prosi za včlanitev v vašo skupino »$group« na TrailStatu.
+$requester prosi za včlanitev v vašo skupino »$group« na strani TrailStat.si.
 
 Prošnjo lahko odobrite ali zavrnete na strani skupine:
 $link
 
-TrailStat
+TrailStat.si

@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_password: SecretStr = SecretStr("")
-    smtp_from: str = "TrailStat <noreply@trailstat.si>"
+    smtp_from: str = '"TrailStat.si" <noreply@trailstat.si>'
     smtp_starttls: bool = True
     # The address of the app, for links in e-mails.
     app_url: str = "http://localhost:5173"

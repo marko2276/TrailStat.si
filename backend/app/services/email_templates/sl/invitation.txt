@@ -1,12 +1,12 @@
-Subject: Povabilo v pohodniško skupino na TrailStatu
+Subject: Povabilo v pohodniško skupino na strani TrailStat.si
 Pozdravljeni!
 
-Prejeli ste povabilo, da se pridružite pohodniški skupini na TrailStatu.
+Prejeli ste povabilo, da se pridružite pohodniški skupini na strani TrailStat.si.
 
 Ime skupine: »$group«
 Povabilo je poslal uporabnik z imenom: »$inviter«
 
-Ta imena izberejo uporabniki TrailStata in niso sporočilo TrailStata.
+Ta imena izberejo uporabniki strani TrailStat.si in niso sporočilo strani TrailStat.si.
 
 Povabilo lahko sprejmete ali zavrnete na tej povezavi:
 $link
@@ -16,4 +16,4 @@ Povezava velja $days dni.
 
 Če tega povabila niste pričakovali, lahko sporočilo prezrete.
 
-TrailStat
+TrailStat.si
