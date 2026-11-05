@@ -14,7 +14,7 @@
                  │ backend ──► PostgreSQL + PostGIS  (own volume)   │
                  │         ──► Overpass API          (OSM import)   │
                  │         ──► DEM files (read-only) (Copernicus DEM)│
-                 │         ──► SMTP (EU provider)    (invite e-mails)│
+                 │         ──► SMTP (Scaleway TEM)   (invite e-mails)│
                  └──────────────── docker compose ──────────────────┘
 ```
 
@@ -31,7 +31,7 @@
 | Authentication | Hanko on `auth.trailstat.si` | Hanko Cloud (free plan) during development; self-hosted in the compose stack before launch. Passkeys, e-mail + password, e-mail passcodes. Frontend embeds `hanko-elements`. See ADR 0003. |
 | OSM import | Overpass API | Query hiking route relations (`route=hiking`), assemble geometry, store OSM relation ID. Self-host Overpass if volume grows. |
 | Elevation | Copernicus GLO-30 DEM GeoTIFFs read by the backend with `rasterio` | No separate service. Files are mounted read-only into the backend container (start with Slovenia/Alps, a few hundred MB). Sampled once per trail import to compute elevation gain/loss and the profile. |
-| E-mail | SMTP via EU provider | Group invitations, join-request notifications. |
+| E-mail | SMTP via Scaleway Transactional Email | Group invitations, join-request notifications. See ADR 0006. |
 | Reverse proxy | Caddy | Automatic Let's Encrypt certificates. |
 
 ## Data model (first draft)
