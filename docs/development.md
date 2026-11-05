@@ -91,8 +91,10 @@ Set these in `.env` on the server, and use only `compose.yaml` (`COMPOSE_FILE=co
   refused too. The default is `development`, which checks nothing.
 - `HANKO_API_URL` and `HANKO_AUDIENCE`: the self-hosted Hanko (NFR-3, NFR-5) and the app's domain.
   Without an audience, tokens issued for other sites would be accepted.
-- `SMTP_HOST` and the other `SMTP_*` settings: without them invitations fail, and join request
-  notifications are lost with only a line in the log.
+- `SMTP_HOST` and the other `SMTP_*` settings, from Scaleway Transactional Email (ADR 0006): without
+  them invitations fail, and join request notifications are lost with only a line in the log.
+- SPF, DKIM and DMARC records for `trailstat.si`, as the Scaleway console lists them. Then send a
+  real invitation to a few mail services and check that it does not land in spam.
 - `APP_URL`: the `https://` address of the app, for links in e-mails.
 - `SITE_ADDRESS` (the bare domain, for automatic HTTPS), with `HTTP_PORT=80` and `HTTPS_PORT=443`.
 - `POSTGRES_PASSWORD`, generated as `.env.example` says, and a nightly backup (see [Backups](#backups)).
