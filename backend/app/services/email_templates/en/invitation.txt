@@ -1,12 +1,12 @@
-Subject: Invitation to a hiking group on TrailStat
+Subject: Invitation to a hiking group on TrailStat.si
 Hello,
 
-You have been invited to join a hiking group on TrailStat.
+You have been invited to join a hiking group on TrailStat.si.
 
 Name of the group: "$group"
 Invited by the user named: "$inviter"
 
-These names are chosen by TrailStat's users, and are not a message from TrailStat.
+These names are chosen by TrailStat.si's users, and are not a message from TrailStat.si.
 
 Open this link to accept or decline the invitation:
 $link
@@ -16,4 +16,4 @@ The link is valid for $days days.
 
 If you weren't expecting this invitation, you can ignore this message.
 
-TrailStat
+TrailStat.si

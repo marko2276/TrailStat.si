@@ -72,7 +72,7 @@ def test_slovenian_text_survives_encoding() -> None:
 
     parsed = parsed_headers(message.as_bytes())
 
-    assert parsed["Subject"] == "Povabilo v pohodniško skupino na TrailStatu"
+    assert parsed["Subject"] == "Povabilo v pohodniško skupino na strani TrailStat.si"
     assert "Ime skupine: »Čežek«" in parsed.get_content()
     assert "»Špela«" in parsed.get_content()
 
