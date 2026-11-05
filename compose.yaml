@@ -2,12 +2,23 @@
 name: trailstat
 
 x-backend-environment: &backend-environment
+  # With "production" the backend refuses to start without its settings: see docs/development.md.
+  ENVIRONMENT: ${ENVIRONMENT:-development}
   POSTGRES_HOST: db
   POSTGRES_USER: ${POSTGRES_USER:-trailstat}
   POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
   POSTGRES_DB: ${POSTGRES_DB:-trailstat}
   HANKO_API_URL: ${HANKO_API_URL:-}
+  HANKO_AUDIENCE: ${HANKO_AUDIENCE:-}
   DEM_DIR: /data/dem
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_FROM: ${SMTP_FROM:-TrailStat <noreply@trailstat.si>}
+  SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+  APP_URL: ${APP_URL:-http://localhost:8080}
+  OVERPASS_URL: ${OVERPASS_URL:-https://overpass-api.de/api/interpreter}
 
 services:
   db:
@@ -61,6 +72,9 @@ services:
     build:
       context: ./frontend
       target: prod
+      args:
+        VITE_HANKO_API_URL: ${HANKO_API_URL:-}
+        VITE_MAP_STYLE_URL: ${VITE_MAP_STYLE_URL:-}
     restart: unless-stopped
 
   caddy:

@@ -1,0 +1,31 @@
+{
+  "title": "Privacy policy",
+  "controller": {
+    "title": "Who is responsible",
+    "text": "TrailStat is run by Marko Vaupotič as a personal project. Contact: privacy@trailstat.si."
+  },
+  "data": {
+    "title": "What we store",
+    "text": "Your e-mail address and name or nickname; optionally your country and city; your language; the trails, hikes and groups you create or join; and technical server logs. Group members can record you as an attendee, and can add guests identified only by a nickname."
+  },
+  "why": {
+    "title": "Why we store it",
+    "text": "To provide the service you signed up for, on the basis of our contract with you, and to keep it secure. We send e-mail only for group invitations and group requests. There is no advertising, and no tracking."
+  },
+  "sharing": {
+    "title": "Who can see it",
+    "text": "Group members see each other's names and the group's hikes. Trails are visible as you choose. Sign-in is handled by Hanko, a German provider. Map images come from OpenFreeMap and trail data from OpenStreetMap services, which see your internet address when your browser or our server contacts them. We do not sell data."
+  },
+  "where": {
+    "title": "Where it is kept",
+    "text": "On servers in the European Union."
+  },
+  "keep": {
+    "title": "How long we keep it",
+    "text": "Until you delete your account. Backups containing deleted data are removed within 30 days."
+  },
+  "rights": {
+    "title": "Your rights",
+    "text": "You can see, correct, download and delete your data on your profile page, and you can contact us for anything else. You may also complain to your data protection authority; in Slovenia that is the Information Commissioner (Informacijski pooblaščenec)."
+  }
+}

@@ -1,0 +1,308 @@
+/* Shared styles. Features reuse these classes instead of adding their own colours. */
+:root {
+  --color-bg: #f6f7f5;
+  --color-surface: #ffffff;
+  --color-text: #1f2a24;
+  --color-muted: #5c6b63;
+  --color-border: #d8dfda;
+  --color-primary: #2f6b4f;
+  --color-primary-hover: #25573f;
+  --color-danger: #b3261e;
+  --radius: 8px;
+  color-scheme: light;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+h1 {
+  font-size: 1.6rem;
+  margin: 0 0 1rem;
+}
+
+h2 {
+  font-size: 1.2rem;
+  margin: 1.5rem 0 0.5rem;
+}
+
+a {
+  color: var(--color-primary);
+}
+
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem 1rem;
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.site-header nav,
+.site-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+}
+
+.site-header-actions {
+  margin-left: auto;
+}
+
+.site-header a {
+  text-decoration: none;
+}
+
+.site-header a.active {
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.site-main {
+  /* Names come from users: a long one without spaces must not widen the page. */
+  overflow-wrap: anywhere;
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 1rem;
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.auth-box {
+  max-width: 26rem;
+  margin: 2rem auto;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.page-header h1 {
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 32rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field label {
+  font-weight: 500;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  padding: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: inherit;
+  max-width: 100%;
+}
+
+.btn {
+  font: inherit;
+  display: inline-block;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.btn-danger {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+/* Wide tables scroll inside this wrapper, not the whole page. */
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  /* Tables scroll in .table-wrap instead of squeezing columns to one letter. */
+  overflow-wrap: normal;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* A number and its unit stay on one line: the frame scrolls instead. */
+td {
+  white-space: nowrap;
+}
+
+.muted {
+  color: var(--color-muted);
+}
+
+.error {
+  color: var(--color-danger);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.75rem;
+}
+
+.plain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.list-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.row-actions {
+  margin-top: 0.5rem;
+}
+
+.search-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.search-form input {
+  flex: 1;
+  min-width: 0;
+}
+
+.pager,
+.section-form {
+  margin-top: 0.75rem;
+}
+
+.confirm {
+  flex-basis: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius);
+}
+
+.confirm p:first-child {
+  margin-top: 0;
+}
+
+.stat-grid dl,
+dl.stat-grid {
+  margin: 0;
+}
+
+.stat-value {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.wrap-anywhere {
+  overflow-wrap: anywhere;
+}
+
+/* Hanko's sign-in and profile components */
+hanko-auth,
+hanko-profile {
+  --brand-color: var(--color-primary);
+  --brand-color-shade-1: var(--color-primary-hover);
+  --link-color: var(--color-primary);
+}
+
+.site-footer {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 1rem;
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  font-size: 0.9rem;
+}

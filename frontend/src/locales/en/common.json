@@ -1,0 +1,26 @@
+{
+  "appName": "TrailStat",
+  "loading": "Loading…",
+  "language": "Language",
+  "save": "Save",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "edit": "Edit",
+  "back": "Back",
+  "confirm": "Confirm",
+  "next": "Next",
+  "previous": "Previous",
+  "privacy": "Privacy",
+  "profile": "Profile",
+  "mainNavigation": "Main navigation",
+  "logout": "Sign out",
+  "home": {
+    "welcome": "Welcome, {{name}}",
+    "defaultNamePrompt": "Others see you as “{{name}}”. Choose your own name in your profile."
+  },
+  "notFound": "This page does not exist.",
+  "auth": {
+    "tagline": "Keep track of your hikes, alone and with your group.",
+    "unconfigured": "Sign-in is not configured on this server."
+  }
+}

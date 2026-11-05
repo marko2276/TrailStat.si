@@ -1,0 +1,43 @@
+# TEST ONLY: the production build of the app, with stand-ins for Hanko, Overpass and the mail
+# server, and synthetic elevation data. See scripts/e2e.sh.
+services:
+  mock-hanko:
+    image: node:22-alpine
+    command: ["node", "/srv/server.mjs"]
+    volumes:
+      - ./e2e/mock-hanko/server.mjs:/srv/server.mjs:ro
+      - ./backend/tests/fixtures/overpass_relation_19446684.json:/srv/overpass_relation.json:ro
+    ports:
+      - 127.0.0.1:${E2E_HANKO_PORT:-14000}:4000
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:4000/.well-known/jwks.json"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:v1.21
+    ports:
+      - 127.0.0.1:${E2E_MAILPIT_PORT:-18025}:8025
+
+  backend:
+    environment:
+      # The stand-ins here are what production refuses: no SMTP, no audience, plain HTTP.
+      ENVIRONMENT: development
+      HANKO_API_URL: http://mock-hanko:4000
+      OVERPASS_URL: http://mock-hanko:4000/api/interpreter
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_STARTTLS: "false"
+      SMTP_USER: ""
+      APP_URL: http://localhost:${E2E_APP_PORT:-18080}
+    depends_on:
+      mock-hanko:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  frontend:
+    build:
+      args:
+        VITE_HANKO_API_URL: http://localhost:${E2E_HANKO_PORT:-14000}

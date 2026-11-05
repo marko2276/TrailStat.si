@@ -1,0 +1,35 @@
+{
+  "title": "Statistika",
+  "thisYear": "Letos",
+  "subject": "Čigava statistika",
+  "me": "Moja",
+  "group": "Skupina",
+  "period": "Obdobje",
+  "periods": {
+    "all": "Celotno obdobje",
+    "day": "Dan",
+    "month": "Mesec",
+    "year": "Leto"
+  },
+  "day": "Dan",
+  "month": "Mesec",
+  "year": "Leto",
+  "hikeCount": "Pohodi",
+  "totalDistance": "Skupna razdalja",
+  "totalElevation": "Skupni vzpon",
+  "totalDuration": "Skupni čas",
+  "averageDuration": "Povprečni čas",
+  "hikes": "Pohodi v tem obdobju",
+  "breakdown": "Po udeležencih",
+  "attendee": "Udeleženec",
+  "guest": "Gost",
+  "columns": {
+    "hikes": "Pohodi",
+    "distance": "Razdalja",
+    "elevation": "Vzpon",
+    "duration": "Čas",
+    "average": "Povprečje"
+  },
+  "empty": "V tem obdobju ni pohodov.",
+  "summaryOnly": "Niste član te skupine, zato vidite samo njene skupne podatke."
+}

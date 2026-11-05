@@ -1,0 +1,29 @@
+{
+  "title": "Profil",
+  "email": "E-pošta",
+  "displayName": "Ime ali vzdevek",
+  "country": "Država",
+  "city": "Kraj",
+  "notSet": "Ni nastavljeno",
+  "saved": "Profil je shranjen.",
+  "security": "Prijava in varnost",
+  "securityHint": "Upravljajte svoj e-poštni naslov, geslo in ključe za dostop.",
+  "data": {
+    "title": "Vaši podatki",
+    "exportHint": "Prenesite vse podatke, ki jih hranimo o vas, ali izbrišite svoj račun.",
+    "export": "Prenesi moje podatke",
+    "delete": "Izbriši moj račun",
+    "deleteIntro": "S tem boste račun takoj izbrisali in tega ni mogoče razveljaviti:",
+    "deleteProfile": "Vaš profil in prijava bosta izbrisana.",
+    "deleteHikes": "Pohodi, na katerih ste bili edini udeleženec, bodo izbrisani. Pohodi z drugimi ostanejo njim, brez vašega imena.",
+    "deleteTrails": "Vaše zasebne poti bodo izbrisane. Javne poti in poti v skupinah ostanejo drugim, brez vašega imena.",
+    "deleteGroups": "Skupine brez drugih članov bodo izbrisane. Če ste zadnji skrbnik skupine, jo prevzame njen najdlje včlanjeni član.",
+    "confirmLabel": "Za potrditev vnesite svoj e-poštni naslov ({{email}})",
+    "deleteConfirm": "Trajno izbriši moj račun"
+  },
+  "deleted": {
+    "title": "Vaš račun je izbrisan",
+    "done": "Vaši podatki so odstranjeni iz storitve TrailStat.",
+    "loginKept": "Vaše prijave ni bilo mogoče izbrisati samodejno. Prosimo, zahtevajte njeno odstranitev, kot je opisano na strani o zasebnosti."
+  }
+}

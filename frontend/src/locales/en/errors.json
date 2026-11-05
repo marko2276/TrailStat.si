@@ -1,0 +1,10 @@
+{
+  "generic": "Something went wrong. Please try again.",
+  "not_authenticated": "Please sign in.",
+  "invalid_token": "Your session has expired. Please sign in again.",
+  "auth_unavailable": "Sign-in is temporarily unavailable. Please try again later.",
+  "auth_not_configured": "Sign-in is not configured on this server.",
+  "forbidden": "You are not allowed to do this.",
+  "not_found": "This item does not exist or you cannot see it.",
+  "rate_limited": "Too many attempts. Please wait a while and try again."
+}

@@ -1,0 +1,19 @@
+Subject: Invitation to a hiking group on TrailStat
+Hello,
+
+You have been invited to join a hiking group on TrailStat.
+
+Name of the group: "$group"
+Invited by the user named: "$inviter"
+
+These names are chosen by TrailStat's users, and are not a message from TrailStat.
+
+Open this link to accept or decline the invitation:
+$link
+
+Sign in with this e-mail address. If you don't have an account yet, you can create one with it after opening the link.
+The link is valid for $days days.
+
+If you weren't expecting this invitation, you can ignore this message.
+
+TrailStat
