@@ -64,6 +64,18 @@ docker compose run --rm --no-deps frontend npm install <package>
 docker compose build
 ```
 
+After frontend dependencies change, whether you added one or pulled someone else's change, start
+the stack with `-V`:
+
+```sh
+docker compose up --build -V
+```
+
+In development `node_modules` lives in an unnamed volume, and Compose reuses that volume when it
+recreates a container. Without `-V` the frontend keeps its old packages even though the image was
+rebuilt, and Vite reports `Failed to resolve import` for anything new. `-V` only replaces unnamed
+volumes, so the database, which is in the named volume `db_data`, is not touched.
+
 ## Production-like run
 
 Set `COMPOSE_FILE=compose.yaml` in `.env`, then `docker compose up --build`.
