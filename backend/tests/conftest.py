@@ -173,6 +173,7 @@ def make_token(rsa_key: rsa.RSAPrivateKey) -> MakeToken:
     ) -> str:
         claims: dict[str, Any] = {
             "sub": subject,
+            "iat": int(time.time()),
             "exp": int(time.time()) + expires_in,
             **extra_claims,
         }

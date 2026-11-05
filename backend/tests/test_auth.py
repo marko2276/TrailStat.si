@@ -1,5 +1,6 @@
 import io
 import json
+import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from types import SimpleNamespace
@@ -69,7 +70,27 @@ def test_changed_email_in_hanko_is_synced(client: TestClient, make_token: MakeTo
 
 
 def test_expired_token_is_rejected(client: TestClient, make_token: MakeToken) -> None:
-    response = client.get("/api/me", headers=bearer(make_token(expires_in=-60)))
+    response = client.get("/api/me", headers=bearer(make_token(expires_in=-120)))
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "invalid_token"}
+
+
+def test_new_token_is_accepted_when_our_clock_is_slightly_behind(
+    client: TestClient, make_token: MakeToken
+) -> None:
+    # Hanko's clock ahead of ours: signing in would otherwise end in a 401, and back at login.
+    token = make_token(iat=int(time.time()) + 5)
+
+    assert client.get("/api/me", headers=bearer(token)).status_code == 200
+
+
+def test_token_issued_far_in_the_future_is_rejected(
+    client: TestClient, make_token: MakeToken
+) -> None:
+    token = make_token(iat=int(time.time()) + 3600, expires_in=7200)
+
+    response = client.get("/api/me", headers=bearer(token))
 
     assert response.status_code == 401
     assert response.json() == {"detail": "invalid_token"}
