@@ -15,6 +15,9 @@ const ATTRIBUTION =
   '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap contributors</a>';
 const SLOVENIA: [number, number] = [14.8, 46.15];
 const ROUTE_SOURCE = "route";
+const MARKER_SOURCE = "marker";
+// Wide and invisible: a thin line is hard to point at, and harder to tap.
+const ROUTE_HIT_LAYER = "route-hit";
 const ROUTE_COLOUR = "#2f6b4f"; // --color-primary. Map layers cannot read CSS variables.
 
 function asFeature(geometry: LineString | null | undefined): GeoJSONSourceSpecification["data"] {
@@ -22,6 +25,17 @@ function asFeature(geometry: LineString | null | undefined): GeoJSONSourceSpecif
     type: "Feature",
     properties: {},
     geometry: geometry ?? { type: "LineString", coordinates: [] },
+  };
+}
+
+function asPoint(
+  position: [number, number] | null | undefined,
+): GeoJSONSourceSpecification["data"] {
+  return {
+    type: "FeatureCollection",
+    features: position
+      ? [{ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: position } }]
+      : [],
   };
 }
 
@@ -46,18 +60,29 @@ function visibleArea(map: MapLibreMap): string {
 }
 
 /** Only ever loaded through LazyTrailMap, to keep MapLibre out of the first page's bundle. */
-export default function TrailMap({ geometry, label, onVisibleAreaChange }: TrailMapProps) {
+export default function TrailMap({
+  geometry,
+  label,
+  onVisibleAreaChange,
+  marker,
+  onRoutePointer,
+}: TrailMapProps) {
   const { t } = useTranslation("trails");
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const onChange = useRef(onVisibleAreaChange);
+  const onPointer = useRef(onRoutePointer);
   const initialGeometry = useRef(geometry);
 
   useEffect(() => {
     onChange.current = onVisibleAreaChange;
   }, [onVisibleAreaChange]);
+
+  useEffect(() => {
+    onPointer.current = onRoutePointer;
+  }, [onRoutePointer]);
 
   useEffect(() => {
     if (!container.current) return;
@@ -100,9 +125,40 @@ export default function TrailMap({ geometry, label, onVisibleAreaChange }: Trail
         layout: line,
         paint: { "line-color": ROUTE_COLOUR, "line-width": 4 },
       });
+      map.addLayer({
+        id: ROUTE_HIT_LAYER,
+        type: "line",
+        source: ROUTE_SOURCE,
+        layout: line,
+        paint: { "line-color": "#000000", "line-opacity": 0, "line-width": 24 },
+      });
+      map.addSource(MARKER_SOURCE, { type: "geojson", data: asPoint(null) });
+      map.addLayer({
+        id: "marker",
+        type: "circle",
+        source: MARKER_SOURCE,
+        paint: {
+          "circle-radius": 7,
+          "circle-color": ROUTE_COLOUR,
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": 3,
+        },
+      });
       if (initialGeometry.current) fitToLine(map, initialGeometry.current);
       setLoaded(true);
     });
+    const pointAt = (event: { lngLat: { lng: number; lat: number } }) =>
+      onPointer.current?.([event.lngLat.lng, event.lngLat.lat]);
+    map.on("mousemove", ROUTE_HIT_LAYER, (event) => {
+      if (onPointer.current) map.getCanvas().style.cursor = "pointer";
+      pointAt(event);
+    });
+    map.on("mouseleave", ROUTE_HIT_LAYER, () => {
+      map.getCanvas().style.cursor = "";
+      onPointer.current?.(null);
+    });
+    // A tap, where there is no hovering.
+    map.on("click", ROUTE_HIT_LAYER, pointAt);
     map.on("moveend", () => onChange.current?.(visibleArea(map)));
 
     return () => {
@@ -118,6 +174,12 @@ export default function TrailMap({ geometry, label, onVisibleAreaChange }: Trail
     (map.getSource(ROUTE_SOURCE) as GeoJSONSource | undefined)?.setData(asFeature(geometry));
     if (geometry) fitToLine(map, geometry);
   }, [geometry, loaded]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loaded) return;
+    (map.getSource(MARKER_SOURCE) as GeoJSONSource | undefined)?.setData(asPoint(marker));
+  }, [marker, loaded]);
 
   if (failed) return <p className="muted">{t("map.unavailable")}</p>;
   return <div ref={container} className="trail-map" role="region" aria-label={label} />;

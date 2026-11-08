@@ -11,7 +11,8 @@ const fake = vi.hoisted(() => {
   class FakeMap {
     static instances: FakeMap[] = [];
     static failing = false;
-    handlers = new Map<string, () => void>();
+    handlers = new Map<string, (event?: unknown) => void>();
+    canvas = { style: { cursor: "" } };
     sources = new Map<string, { data: unknown; setData: (data: unknown) => void }>();
     layers: string[] = [];
     /** Where each layer was put: the layer it went below, if any. */
@@ -28,11 +29,17 @@ const fake = vi.hoisted(() => {
       if (FakeMap.failing) throw new Error("WebGL is not supported");
       FakeMap.instances.push(this);
     }
-    on(event: string, handler: () => void) {
-      this.handlers.set(event, handler);
+    /** Events on a layer are kept as "event:layer". */
+    on(event: string, layerOrHandler: string | (() => void), handler?: (event?: unknown) => void) {
+      if (typeof layerOrHandler === "string")
+        this.handlers.set(`${event}:${layerOrHandler}`, handler!);
+      else this.handlers.set(event, layerOrHandler);
     }
-    fire(event: string) {
-      this.handlers.get(event)?.();
+    fire(event: string, data?: unknown) {
+      this.handlers.get(event)?.(data);
+    }
+    getCanvas() {
+      return this.canvas;
     }
     addSource(id: string, source: { data: unknown }) {
       const entry = {
@@ -145,7 +152,14 @@ describe("TrailMap", () => {
 
     act(() => map.fire("load"));
 
-    expect(map.layers).toEqual(["hiking-tracks", "hiking-paths", "route-outline", "route"]);
+    expect(map.layers).toEqual([
+      "hiking-tracks",
+      "hiking-paths",
+      "route-outline",
+      "route",
+      "route-hit",
+      "marker",
+    ]);
     expect(map.below.get("hiking-tracks")).toBe("road_one_way_arrow");
     expect(map.below.get("hiking-paths")).toBe("road_one_way_arrow");
     // The trail's line goes on top of everything.
@@ -158,7 +172,52 @@ describe("TrailMap", () => {
 
     act(() => map.fire("load"));
 
-    expect(map.layers).toEqual(["route-outline", "route"]);
+    expect(map.layers).toEqual(["route-outline", "route", "route-hit", "marker"]);
+  });
+
+  it("marks a place on the trail, and moves or removes the mark", async () => {
+    function Harness() {
+      const [marker, setMarker] = useState<[number, number] | null>([13.85, 46.45]);
+      return (
+        <>
+          <TrailMap label="Map" geometry={line} marker={marker} />
+          <button onClick={() => setMarker([13.9, 46.5])}>move</button>
+          <button onClick={() => setMarker(null)}>clear</button>
+        </>
+      );
+    }
+    render(<Harness />);
+    const map = theMap();
+    act(() => map.fire("load"));
+    const marked = () =>
+      (map.sources.get("marker")!.data as { features: { geometry: { coordinates: unknown } }[] })
+        .features;
+
+    expect(marked().map((feature) => feature.geometry.coordinates)).toEqual([[13.85, 46.45]]);
+
+    await userEvent.click(screen.getByRole("button", { name: "move" }));
+    expect(marked()[0].geometry.coordinates).toEqual([13.9, 46.5]);
+
+    await userEvent.click(screen.getByRole("button", { name: "clear" }));
+    expect(marked()).toEqual([]);
+  });
+
+  it("reports where on the trail the pointer is, a tap, and leaving it", () => {
+    const onRoutePointer = vi.fn();
+    render(<TrailMap label="Map" geometry={line} onRoutePointer={onRoutePointer} />);
+    const map = theMap();
+    act(() => map.fire("load"));
+
+    act(() => map.fire("mousemove:route-hit", { lngLat: { lng: 13.85, lat: 46.45 } }));
+    expect(onRoutePointer).toHaveBeenLastCalledWith([13.85, 46.45]);
+    expect(map.canvas.style.cursor).toBe("pointer");
+
+    act(() => map.fire("mouseleave:route-hit"));
+    expect(onRoutePointer).toHaveBeenLastCalledWith(null);
+    expect(map.canvas.style.cursor).toBe("");
+
+    act(() => map.fire("click:route-hit", { lngLat: { lng: 13.82, lat: 46.42 } }));
+    expect(onRoutePointer).toHaveBeenLastCalledWith([13.82, 46.42]);
   });
 
   it("draws the line and zooms to it once the map has loaded", () => {

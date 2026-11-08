@@ -86,6 +86,25 @@ test("creating a trail from a watch's GPX recording", async ({ browser }) => {
   await expect(page.getByRole("link", { name: "View on OpenStreetMap" })).toHaveCount(0);
   await expectNoHorizontalScroll(page);
 
+  // The profile and the map show the same place. Clicks work with a mouse and as taps.
+  const map = page.locator(".trail-map canvas");
+  const tooltip = page.locator(".elevation-tooltip");
+  await page.waitForTimeout(500);
+  const before = await map.screenshot();
+  const hitArea = page.getByTestId("elevation-hit-area");
+  const box = (await hitArea.boundingBox())!;
+  await hitArea.click({ position: { x: box.width / 2, y: box.height / 2 } });
+  await expect(tooltip).toHaveText(/^2\.2 km · /);
+  await page.waitForTimeout(500);
+  expect((await map.screenshot()).equals(before), "a marker appears on the map").toBe(false);
+
+  // The trail runs due south, through the middle of the map: a quarter of the way down is
+  // about a quarter of the way along.
+  const mapBox = (await map.boundingBox())!;
+  await map.click({ position: { x: mapBox.width / 2, y: mapBox.height / 4 } });
+  // The map adds a margin around the trail, so a little less than a quarter.
+  await expect(tooltip).toHaveText(/^(0\.[6-9]|1(\.[0-2])?) km · /);
+
   // Its measurements come from the route: a new file can replace them, typing cannot.
   await page.getByRole("link", { name: "Edit" }).click();
   await expect(page.getByLabel(FILE_FIELD)).toBeVisible();

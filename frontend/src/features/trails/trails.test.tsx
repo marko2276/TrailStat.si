@@ -23,14 +23,31 @@ vi.mock("./TrailMap", () => ({
     geometry,
     label,
     onVisibleAreaChange,
+    marker,
+    onRoutePointer,
   }: {
-    geometry?: { coordinates: unknown[] } | null;
+    geometry?: { coordinates: [number, number][] } | null;
     label: string;
     onVisibleAreaChange?: (bbox: string) => void;
+    marker?: [number, number] | null;
+    onRoutePointer?: (position: [number, number] | null) => void;
   }) => (
-    <div role="region" aria-label={label} data-points={geometry?.coordinates.length ?? 0}>
+    <div
+      role="region"
+      aria-label={label}
+      data-points={geometry?.coordinates.length ?? 0}
+      data-marker={marker ? marker.map((value) => value.toFixed(4)).join(",") : ""}
+    >
       {onVisibleAreaChange && (
         <button onClick={() => onVisibleAreaChange("13.5,45.5,14.5,46.5")}>report map area</button>
+      )}
+      {onRoutePointer && geometry && (
+        <>
+          <button onClick={() => onRoutePointer(geometry.coordinates.at(-1)!)}>
+            point at the trail's end
+          </button>
+          <button onClick={() => onRoutePointer(null)}>leave the trail</button>
+        </>
       )}
     </div>
   ),
@@ -279,6 +296,52 @@ describe("trail detail", () => {
     );
     expect(screen.getByText(/Copernicus/)).toBeTruthy();
     expect(screen.queryByText(/No elevation data/)).toBeNull();
+  });
+
+  it("marks on the map the point chosen on the elevation profile", async () => {
+    mockApi({ "GET /api/trails/t1": osmDetail });
+    renderRoutes("/trails/t1");
+    const map = await screen.findByRole("region", { name: "Map of the trail Šmarna gora" });
+    const hitArea = screen.getByTestId("elevation-hit-area");
+    hitArea.getBoundingClientRect = () =>
+      ({ left: 0, width: 1000, top: 0, height: 100 }) as DOMRect;
+    expect(map.getAttribute("data-marker")).toBe("");
+
+    // The end of the profile is the end of the trail.
+    fireEvent.pointerMove(hitArea, { clientX: 1000 });
+    expect(map.getAttribute("data-marker")).toBe("13.8200,46.4200");
+    // Its start, the start.
+    fireEvent.pointerMove(hitArea, { clientX: 0 });
+    expect(map.getAttribute("data-marker")).toBe("13.8000,46.4000");
+
+    fireEvent.pointerLeave(hitArea);
+    expect(map.getAttribute("data-marker")).toBe("");
+  });
+
+  it("marks on the elevation profile the point chosen on the map", async () => {
+    mockApi({ "GET /api/trails/t1": osmDetail });
+    renderRoutes("/trails/t1");
+    await screen.findByRole("region", { name: "Map of the trail Šmarna gora" });
+
+    await userEvent.click(screen.getByRole("button", { name: "point at the trail's end" }));
+
+    expect(screen.getByText("2 km · 1,260 m")).toBeTruthy();
+    expect(
+      screen
+        .getByRole("region", { name: "Map of the trail Šmarna gora" })
+        .getAttribute("data-marker"),
+    ).toBe("13.8200,46.4200");
+
+    await userEvent.click(screen.getByRole("button", { name: "leave the trail" }));
+    expect(screen.queryByText("2 km · 1,260 m")).toBeNull();
+  });
+
+  it("does not link the map to a profile the trail does not have", async () => {
+    mockApi({ "GET /api/trails/t1": { ...osmDetail, elevation_profile: null } });
+    renderRoutes("/trails/t1");
+
+    await screen.findByRole("region", { name: "Map of the trail Šmarna gora" });
+    expect(screen.queryByRole("button", { name: "point at the trail's end" })).toBeNull();
   });
 
   it("shows a manual trail without map, profile or OSM credit", async () => {
@@ -1103,6 +1166,9 @@ describe("loading a route from a file", () => {
     expect(screen.getByText("2.7 km")).toBeTruthy();
     expect(screen.getByRole("img", { name: "Elevation profile" })).toBeTruthy();
     expect(screen.getByText("Elevation: from the heights in the file.")).toBeTruthy();
+    // The preview's map and profile are linked too.
+    await userEvent.click(screen.getByRole("button", { name: "point at the trail's end" }));
+    expect(screen.getByText("2.7 km · 350 m")).toBeTruthy();
     expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Krim iz ure");
     expect(screen.queryByLabelText("Distance (km)")).toBeNull();
 
