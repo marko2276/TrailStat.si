@@ -10,6 +10,10 @@ export interface TrailMapProps {
   label: string;
   /** Called with "west,south,east,north" when the map appears and after every move. */
   onVisibleAreaChange?: (bbox: string) => void;
+  /** A place on the trail to mark, such as the point chosen on the elevation profile. */
+  marker?: [number, number] | null;
+  /** Called with the pointer's position while it is on the trail, and with null when it leaves. */
+  onRoutePointer?: (position: [number, number] | null) => void;
 }
 
 const TrailMap = lazy(() => import("./TrailMap"));

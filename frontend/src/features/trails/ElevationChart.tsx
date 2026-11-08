@@ -42,15 +42,22 @@ function useWidth() {
 export function ElevationChart({
   profile,
   highestPoint,
+  selectedDistance,
+  onSelectDistance,
 }: {
   profile: [number, number][];
   /** The trail's highest point, which smoothing can have taken off the profile itself. */
   highestPoint?: number | null;
+  /** With `onSelectDistance`, the marked distance is shared, for example with a map. */
+  selectedDistance?: number | null;
+  onSelectDistance?: (metres: number | null) => void;
 }) {
   const { t } = useTranslation("trails");
   const format = useFormat();
   const { ref, width } = useWidth();
-  const [hovered, setHovered] = useState<number | null>(null);
+  const [ownSelection, setOwnSelection] = useState<number | null>(null);
+  const selected = onSelectDistance ? (selectedDistance ?? null) : ownSelection;
+  const select = onSelectDistance ?? setOwnSelection;
 
   if (profile.length < 2) return null;
 
@@ -85,18 +92,22 @@ export function ElevationChart({
     highest: format.elevation(highestPoint ?? highest),
   });
 
-  function trackPointer(event: PointerEvent<SVGRectElement>) {
-    const box = event.currentTarget.getBoundingClientRect();
-    if (box.width === 0) return;
-    const metres = ((event.clientX - box.left) / box.width) * distance;
+  function nearestIndex(metres: number) {
     let nearest = 0;
     profile.forEach(([position], index) => {
       if (Math.abs(position - metres) < Math.abs(profile[nearest][0] - metres)) nearest = index;
     });
-    setHovered(nearest);
+    return nearest;
   }
 
-  const point = hovered === null ? null : profile[hovered];
+  function trackPointer(event: PointerEvent<SVGRectElement>) {
+    const box = event.currentTarget.getBoundingClientRect();
+    if (box.width === 0) return;
+    const metres = ((event.clientX - box.left) / box.width) * distance;
+    select(profile[nearestIndex(metres)][0]);
+  }
+
+  const point = selected === null ? null : profile[nearestIndex(selected)];
   const tooltipLeft = point
     ? Math.min(Math.max(x(point[0]), MARGIN.left + 50), width - MARGIN.right - 50)
     : 0;
@@ -159,7 +170,7 @@ export function ElevationChart({
           fill="transparent"
           onPointerDown={trackPointer}
           onPointerMove={trackPointer}
-          onPointerLeave={() => setHovered(null)}
+          onPointerLeave={() => select(null)}
         />
       </svg>
       {point && (

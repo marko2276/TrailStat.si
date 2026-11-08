@@ -9,6 +9,7 @@ import { ElevationChart } from "./ElevationChart";
 import { LazyTrailMap } from "./LazyTrailMap";
 import { readRouteFile, RouteFileError } from "./routeFile";
 import type { RouteFileProblem } from "./routeFile";
+import { useRoutePosition } from "./useRoutePosition";
 
 export interface LoadedRoute {
   fileName: string;
@@ -76,6 +77,7 @@ export function RouteFileField({
   const elevation = (metres: number | null) =>
     metres === null ? unknown : format.elevation(metres);
   const shown = value?.preview;
+  const position = useRoutePosition(shown?.geometry, shown?.elevation_profile);
 
   return (
     <div className="field">
@@ -122,11 +124,18 @@ export function RouteFileField({
               <dd className="stat-value">{elevation(shown.highest_point_m)}</dd>
             </div>
           </dl>
-          <LazyTrailMap geometry={shown.geometry} label={t("routeFile.mapLabel")} />
+          <LazyTrailMap
+            geometry={shown.geometry}
+            label={t("routeFile.mapLabel")}
+            marker={position.marker}
+            onRoutePointer={position.onRoutePointer}
+          />
           {shown.elevation_profile && shown.elevation_profile.length >= 2 && (
             <ElevationChart
               profile={shown.elevation_profile}
               highestPoint={shown.highest_point_m}
+              selectedDistance={position.selectedDistance}
+              onSelectDistance={position.onSelectDistance}
             />
           )}
           <ElevationNote source={shown.elevation_source} />

@@ -10,6 +10,7 @@ import { OsmAttribution } from "./OsmAttribution";
 import { ElevationChart } from "./ElevationChart";
 import { LazyTrailMap } from "./LazyTrailMap";
 import { ElevationNote } from "./RouteFileField";
+import { useRoutePosition } from "./useRoutePosition";
 import "./trails.css";
 
 function Stat({ label, children }: { label: string; children: ReactNode }) {
@@ -29,6 +30,7 @@ function Details({ trail }: { trail: TrailDetail }) {
   const elevation = (metres: number | null) =>
     metres === null ? unknown : format.elevation(metres);
   const imported = trail.source === "osm";
+  const position = useRoutePosition(trail.geometry, trail.elevation_profile);
 
   return (
     <>
@@ -70,7 +72,12 @@ function Details({ trail }: { trail: TrailDetail }) {
       {trail.geometry ? (
         <section className="trail-section">
           <h2>{t("map.title")}</h2>
-          <LazyTrailMap geometry={trail.geometry} label={t("map.label", { name: trail.name })} />
+          <LazyTrailMap
+            geometry={trail.geometry}
+            label={t("map.label", { name: trail.name })}
+            marker={position.marker}
+            onRoutePointer={position.onRoutePointer}
+          />
         </section>
       ) : (
         <p className="muted trail-section">{t("noMap")}</p>
@@ -79,7 +86,12 @@ function Details({ trail }: { trail: TrailDetail }) {
       {trail.elevation_profile && trail.elevation_profile.length >= 2 && (
         <section className="trail-section">
           <h2>{t("chart.title")}</h2>
-          <ElevationChart profile={trail.elevation_profile} highestPoint={trail.highest_point_m} />
+          <ElevationChart
+            profile={trail.elevation_profile}
+            highestPoint={trail.highest_point_m}
+            selectedDistance={position.selectedDistance}
+            onSelectDistance={position.onSelectDistance}
+          />
           <ElevationNote source={trail.elevation_source} />
         </section>
       )}
