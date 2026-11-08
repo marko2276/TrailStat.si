@@ -5,13 +5,13 @@ import { Loading } from "../../components/Loading";
 import { upnQrUrl, useDonationDetails } from "./api";
 
 /** Suggested amounts, in euro cents. The payer can also enter their own. */
-export const AMOUNTS = [500, 1000, 2000, 5000] as const;
+export const AMOUNTS = [200, 500, 1000, 2000] as const;
 
 /** Donations by bank transfer: a UPN QR code to scan, and the details to type in without it. */
 export function SupportPage() {
   const { t, i18n } = useTranslation("support");
   const details = useDonationDetails();
-  const [amount, setAmount] = useState<number | null>(AMOUNTS[1]);
+  const [amount, setAmount] = useState<number | null>(AMOUNTS[2]);
 
   if (details.isPending) return <Loading />;
   if (details.isError) return <ErrorMessage error={details.error} />;

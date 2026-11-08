@@ -39,8 +39,8 @@ describe("SupportPage", () => {
     expect(qrImage().getAttribute("src")).toBe("/api/donations/upn-qr.svg?amount_cents=1000");
     expect(qrImage().alt).toBe("UPN QR code for a donation of €10");
 
-    await userEvent.click(screen.getByRole("radio", { name: "€50" }));
-    expect(qrImage().getAttribute("src")).toBe("/api/donations/upn-qr.svg?amount_cents=5000");
+    await userEvent.click(screen.getByRole("radio", { name: "€20" }));
+    expect(qrImage().getAttribute("src")).toBe("/api/donations/upn-qr.svg?amount_cents=2000");
 
     await userEvent.click(screen.getByRole("radio", { name: "Your choice" }));
     expect(qrImage().getAttribute("src")).toBe("/api/donations/upn-qr.svg");
