@@ -98,7 +98,10 @@ Set these in `.env` on the server, and use only `compose.yaml` (`COMPOSE_FILE=co
 - `APP_URL`: the `https://` address of the app, for links in e-mails.
 - `SITE_ADDRESS` (the bare domain, for automatic HTTPS), with `HTTP_PORT=80` and `HTTPS_PORT=443`.
 - `POSTGRES_PASSWORD`, generated as `.env.example` says, and a nightly backup (see [Backups](#backups)).
-- `VITE_MAP_STYLE_URL` if needed. It is read when the frontend is built.
+- `VITE_MAP_STYLE_URL` if needed. It is read when the frontend is built. With another map
+  server, set `MAP_ORIGIN` too: the Content-Security-Policy in the `Caddyfile` lets pages contact
+  only the app, `HANKO_API_URL` and `MAP_ORIGIN`. After deploying, sign in once and open a map
+  with the browser's console open: a blocked request shows there as a CSP violation.
 - `ADMIN_USER_IDS`: your Hanko user ID, from the Hanko console, to open `/admin`.
 - `DONATION_*`, to show the support page with a UPN QR code, a Flik number, or both (see
   `.env.example`). The backend refuses to start with an invalid IBAN or Flik number. Scan the code with a banking app, and check the details

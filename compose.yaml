@@ -90,6 +90,9 @@ services:
     restart: unless-stopped
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:-http://localhost}
+      # For the Content-Security-Policy: where the browser may go besides the app itself.
+      HANKO_ORIGIN: ${HANKO_API_URL:-}
+      MAP_ORIGIN: ${MAP_ORIGIN:-https://tiles.openfreemap.org}
     ports:
       - ${HTTP_PORT:-8080}:80
       - ${HTTPS_PORT:-8443}:443
