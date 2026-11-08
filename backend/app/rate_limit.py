@@ -1,4 +1,5 @@
-"""Per-user rate limits, for actions that cost someone else something: e-mails and Overpass.
+"""Per-user rate limits, for actions that cost someone else something, such as e-mails and
+Overpass, or that are heavy for the server, such as reading the elevation data for a route.
 
 The counts are kept in this process's memory. That is enough for the single-process deployment
 in compose.yaml. With several workers each would count separately, and a restart forgets them.
@@ -25,6 +26,8 @@ INVITATION_EMAILS = RateLimit("invitation_email", 20, 3600)
 JOIN_REQUESTS = RateLimit("join_request", 10, 3600)
 # Search, preview and import count together.
 OSM_REQUESTS = RateLimit("osm", 20, 60)
+# Previewing and saving a loaded route count together. Each reads the elevation data.
+ROUTE_REQUESTS = RateLimit("route", 30, 60)
 
 _lock = threading.Lock()
 # Bounded by the number of users and the limits: a refused call is not recorded.

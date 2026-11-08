@@ -47,8 +47,9 @@ GroupInvitation(id, group_id, email, token, invited_by, status, expires_at)
 JoinRequest(id, group_id, user_id, status, created_at)
 
 Trail(id, name, description, visibility[public|private|group],
-      owner_user_id, group_id?, source[osm|manual], osm_relation_id?,
+      owner_user_id, group_id?, source[osm|manual|file], osm_relation_id?,
       distance_m, elevation_gain_m, elevation_loss_m?, geometry?, elevation_profile?,
+      elevation_source[dem|file]?,
       archived_at?, created_at, updated_at)
   -- unique(name) within scope: public | (owner, private) | (group, group)
   -- trails are never deleted, only archived (archived_at set)
@@ -77,4 +78,3 @@ private to their owner.
 ## Future components
 
 - **Routing engine** (BRouter or Valhalla) for creating trails by clicking points on the map.
-- **GPX parser** for uploading trails.

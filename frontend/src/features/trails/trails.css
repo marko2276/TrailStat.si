@@ -170,3 +170,15 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
+
+/* A route loaded from a file, before the trail is saved */
+.route-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.route-preview p {
+  margin: 0;
+}

@@ -22,7 +22,7 @@ many users.
 |---|---|
 | Accounts | Sign up / sign in; profile with e-mail and name/nickname (required), country and city (optional), preferred language; account deletion & data export (GDPR) |
 | Languages | English and Slovenian; easy to add more |
-| Trails | Import from OpenStreetMap; create manually (name, distance, elevation); map + elevation profile for trails with geometry; public / private / group visibility |
+| Trails | Import from OpenStreetMap; create manually (name, distance, elevation); load a route from a GPX or KML file, also into a manual trail; map + elevation profile for trails with geometry; public / private / group visibility |
 | Hikes | Record a hike on a trail with start date & time and duration; personal or group hike with attendees (members and guests) |
 | Groups | Create, invite by email, request to join public groups, multiple admins, guests, public / private visibility |
 | Statistics | Personal and group statistics, filterable by day, month and year |
@@ -30,7 +30,6 @@ many users.
 
 ### Later (milestone `Later`)
 
-- GPX file upload to create a trail
 - Create a trail by clicking start, intermediate and end points on the map (routed along real paths)
 - Achievements and badges
 - App Store / Google Play distribution (Capacitor wrapper)
@@ -44,7 +43,7 @@ many users.
 | **Group** | A set of members (users) and guests. Every group has ≥ 1 admin. |
 | **Admin** | A group member with management rights. The creator is the first admin; there can be several. |
 | **Guest** | A person in a group identified only by a nickname, without an account. Can attend group hikes; cannot log in. A guest is never linked to a user account, even if that person signs up later. A hike left with no attendees, for example after its only guest is removed, is deleted. |
-| **Trail** | A route with a name, distance and elevation gain, optionally a map geometry. Identified internally by an ID; the name is unique within its scope (public trails / a user's private trails / a group's trails). A trail is always owned by its creator; group visibility only shares it with a group. Trails are never deleted, only archived. |
+| **Trail** | A route with a name, distance and elevation gain, optionally a map geometry. The geometry comes from OpenStreetMap or from a GPX or KML file; the file is read on the user's device, and only its points are sent and stored. Identified internally by an ID; the name is unique within its scope (public trails / a user's private trails / a group's trails). A trail is always owned by its creator; group visibility only shares it with a group. Trails are never deleted, only archived. |
 | **Hike** | One completed walk of a trail: start date & time + duration. A *personal hike* belongs to one user; a *group hike* belongs to a group and lists its attendees. |
 
 ## 4. Visibility and permissions
@@ -67,7 +66,12 @@ after leaving the group it is shared with.
 
 Statistics take distance and elevation from the trail. So once a hike on a trail has an attendee
 other than the person editing it (another user or a guest), its distance, elevation gain and loss,
-and highest point can no longer be changed. Its name and description still can.
+and highest point can no longer be changed, and neither can its route. Its name and description
+still can.
+
+A trail with a route loaded from a file gets its distance and elevation from that route, like an
+imported trail: they cannot be typed in, but a new file can replace the route. Elevation comes from
+the same elevation data as imported trails; outside it, from the heights in the file.
 
 Listing archived trails shows only those the user can edit, the only ones they could bring back.
 Other archived trails are hidden, as archiving intends.

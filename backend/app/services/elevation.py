@@ -10,7 +10,7 @@ route would look right and be wrong, so a route with any gap gets none at all.
 
 import logging
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import numpy as np
@@ -177,13 +177,7 @@ def gain_and_loss(
     return gain, loss
 
 
-def compute_route_elevation(coords: Sequence[Coord], dem_dir: str | Path) -> RouteElevation | None:
-    """None if any part of the route lacks elevation data."""
-    longitudes, latitudes, distances = resample_route(coords)
-    elevations = sample_dem(longitudes, latitudes, dem_dir)
-    if np.isnan(elevations).any():
-        return None
-
+def _summarise(distances: FloatArray, elevations: FloatArray) -> RouteElevation:
     smoothed = smooth(elevations)
     gain, loss = gain_and_loss(smoothed)
     shown = np.unique(np.linspace(0, len(smoothed) - 1, MAX_PROFILE_POINTS).round().astype(int))
@@ -194,3 +188,33 @@ def compute_route_elevation(coords: Sequence[Coord], dem_dir: str | Path) -> Rou
         highest_m=round(float(elevations.max())),
         profile=[[round(float(distances[i])), round(float(smoothed[i]), 1)] for i in shown],
     )
+
+
+def compute_route_elevation(coords: Sequence[Coord], dem_dir: str | Path) -> RouteElevation | None:
+    """None if any part of the route lacks elevation data."""
+    longitudes, latitudes, distances = resample_route(coords)
+    elevations = sample_dem(longitudes, latitudes, dem_dir)
+    if np.isnan(elevations).any():
+        return None
+    return _summarise(distances, elevations)
+
+
+def elevation_from_heights(
+    coords: Sequence[Coord], heights: Sequence[float]
+) -> RouteElevation | None:
+    """The same figures from heights given with the route, one per point, such as a GPS
+    recording's. Resampled like the DEM, so both are smoothed and counted alike. None if a
+    height is missing or implausible."""
+    values = np.asarray(heights, dtype=np.float64)
+    if (
+        len(values) != len(coords)
+        or np.isnan(values).any()
+        or (values < _MIN_PLAUSIBLE_M).any()
+        or (values > _MAX_PLAUSIBLE_M).any()
+    ):
+        return None
+    along = np.concatenate(([0.0], np.cumsum(segment_lengths_m(coords))))
+    _, _, distances = resample_route(coords)
+    summary = _summarise(distances, np.interp(distances, along, values))
+    # The given heights are exact where they are: a summit may fall between two samples.
+    return replace(summary, highest_m=round(float(values.max())))

@@ -15,7 +15,16 @@ from sqlalchemy.orm import Session, defer
 from app.auth import CurrentUser, DbSession
 from app.config import get_settings
 from app.errors import ApiError
-from app.models import Group, Hike, HikeAttendee, Trail, TrailSource, TrailVisibility, User
+from app.models import (
+    ElevationSource,
+    Group,
+    Hike,
+    HikeAttendee,
+    Trail,
+    TrailSource,
+    TrailVisibility,
+    User,
+)
 from app.permissions import (
     can_edit_trail,
     editable_trails_clause,
@@ -23,14 +32,18 @@ from app.permissions import (
     require_member,
     visible_trails_clause,
 )
-from app.rate_limit import OSM_REQUESTS, enforce
+from app.rate_limit import OSM_REQUESTS, ROUTE_REQUESTS, enforce
 from app.schemas.common import MAX_OFFSET, Page
 from app.schemas.trails import (
+    MAX_DISTANCE_M,
     MAX_NAME_LENGTH,
     MAX_RELATION_ID,
     OsmImport,
     OsmRoutePreview,
     OsmRouteSummary,
+    RouteGeometry,
+    RoutePreview,
+    RoutePreviewRequest,
     SortOrder,
     TrailCreate,
     TrailDetail,
@@ -54,6 +67,7 @@ from app.services.osm import (
     clean_text,
     parse_bbox,
 )
+from app.services.route import PreparedRoute, RouteTooShort, prepare_route
 
 router = APIRouter(prefix="/trails", tags=["trails"])
 
@@ -117,11 +131,17 @@ def _to_detail(session: Session, trail: Trail, user: User) -> TrailDetail:
             and trail.source == TrailSource.MANUAL
             and not _used_by_others(session, trail, user)
         ),
+        can_replace_route=(
+            summary["can_edit"]
+            and trail.source != TrailSource.OSM
+            and not _used_by_others(session, trail, user)
+        ),
         owner_name=owner.display_name if owner else None,
         group_name=group.name if group else None,
         description=trail.description,
         elevation_loss_m=trail.elevation_loss_m,
         highest_point_m=trail.highest_point_m,
+        elevation_source=trail.elevation_source,
         geometry=json.loads(geometry) if geometry else None,
         elevation_profile=trail.elevation_profile,
         osm_relation_id=trail.osm_relation_id,
@@ -163,6 +183,31 @@ def _line_geometry(coords: Sequence[Coord]) -> WKTElement:
 
 def _geojson_line(coords: Sequence[Coord]) -> dict[str, Any]:
     return {"type": "LineString", "coordinates": [list(point) for point in coords]}
+
+
+def _prepare_route(geometry: RouteGeometry) -> PreparedRoute:
+    try:
+        route = prepare_route(geometry.coordinates, get_settings().dem_dir)
+    except RouteTooShort as exc:
+        raise ApiError(422, "route_too_short") from exc
+    if route.distance_m > MAX_DISTANCE_M:
+        raise ApiError(422, "route_too_long")
+    return route
+
+
+def _apply_route(trail: Trail, route: PreparedRoute) -> None:
+    """Distance and elevation now come from the route. Without elevation data for all of it,
+    the trail has none, also if it had typed-in figures before."""
+    elevation = route.elevation
+    trail.source = TrailSource.FILE
+    # GeoAlchemy converts WKT on write; the column's type only names what it reads back.
+    trail.geometry = _line_geometry(route.coords)  # type: ignore[assignment]
+    trail.distance_m = route.distance_m
+    trail.elevation_gain_m = elevation.gain_m if elevation else None
+    trail.elevation_loss_m = elevation.loss_m if elevation else None
+    trail.highest_point_m = elevation.highest_m if elevation else None
+    trail.elevation_profile = elevation.profile if elevation else None
+    trail.elevation_source = route.elevation_source
 
 
 def _release_connection(session: Session) -> None:
@@ -282,10 +327,29 @@ def import_osm_route(
         elevation_loss_m=elevation.loss_m if elevation else None,
         highest_point_m=elevation.highest_m if elevation else None,
         elevation_profile=elevation.profile if elevation else None,
+        elevation_source=ElevationSource.DEM if elevation else None,
     )
     session.add(trail)
     _commit(session)
     return _to_detail(session, trail, user)
+
+
+@router.post("/route-preview", response_model=RoutePreview)
+def preview_route(body: RoutePreviewRequest, user: CurrentUser, session: DbSession) -> RoutePreview:
+    """What a trail with this route would get. Nothing is saved."""
+    enforce(ROUTE_REQUESTS, user.id)
+    _release_connection(session)
+    route = _prepare_route(body.geometry)
+    elevation = route.elevation
+    return RoutePreview(
+        geometry=_geojson_line(route.coords),
+        distance_m=route.distance_m,
+        elevation_gain_m=elevation.gain_m if elevation else None,
+        elevation_loss_m=elevation.loss_m if elevation else None,
+        highest_point_m=elevation.highest_m if elevation else None,
+        elevation_profile=elevation.profile if elevation else None,
+        elevation_source=route.elevation_source,
+    )
 
 
 @router.get("", response_model=Page[TrailSummary])
@@ -347,6 +411,13 @@ def list_trails(
 
 @router.post("", response_model=TrailDetail, status_code=201)
 def create_trail(body: TrailCreate, user: CurrentUser, session: DbSession) -> TrailDetail:
+    measurements = (body.distance_m, body.elevation_gain_m, body.highest_point_m)
+    if body.geometry is not None and any(value is not None for value in measurements):
+        raise ApiError(422, "measurements_from_route")
+    if body.geometry is None:
+        for field in ("distance_m", "elevation_gain_m"):
+            if getattr(body, field) is None:
+                raise ApiError(422, f"{field}_required")
     group_id = _resolve_group(session, user, body.visibility, body.group_id)
     trail = Trail(
         name=body.name,
@@ -359,6 +430,9 @@ def create_trail(body: TrailCreate, user: CurrentUser, session: DbSession) -> Tr
         elevation_gain_m=body.elevation_gain_m,
         highest_point_m=body.highest_point_m,
     )
+    if body.geometry is not None:
+        enforce(ROUTE_REQUESTS, user.id)
+        _apply_route(trail, _prepare_route(body.geometry))
     session.add(trail)
     _commit(session)
     return _to_detail(session, trail, user)
@@ -386,9 +460,25 @@ def update_trail(
     for required in ("name", "distance_m", "elevation_gain_m", "visibility"):
         if required in changes and changes[required] is None:
             raise ApiError(422, f"{required}_required")
+    route = None
+    if "geometry" in changes:
+        if body.geometry is None:
+            raise ApiError(422, "route_required")
+        if trail.source == TrailSource.OSM:
+            raise ApiError(422, "osm_route_read_only")
+        if any(field in changes for field in _MEASUREMENTS):
+            raise ApiError(422, "measurements_from_route")
+        enforce(ROUTE_REQUESTS, user.id)
+        # Before the lock below: the elevation data is read from disk.
+        route = _prepare_route(body.geometry)
+        del changes["geometry"]
     if trail.source == TrailSource.OSM and any(field in changes for field in _MEASUREMENTS):
         raise ApiError(422, "osm_measurements_read_only")
-    if any(field in changes and changes[field] != getattr(trail, field) for field in _MEASUREMENTS):
+    if trail.source == TrailSource.FILE and any(field in changes for field in _MEASUREMENTS):
+        raise ApiError(422, "route_measurements_read_only")
+    if route is not None or any(
+        field in changes and changes[field] != getattr(trail, field) for field in _MEASUREMENTS
+    ):
         # Recording a hike needs a share of this lock, through the foreign key. So a hike still
         # being recorded is waited for and seen below, and a later one waits for this edit.
         session.execute(select(Trail.id).where(Trail.id == trail.id).with_for_update())
@@ -420,6 +510,8 @@ def update_trail(
         changes["description"] = changes["description"] or None
     for field, value in changes.items():
         setattr(trail, field, value)
+    if route is not None:
+        _apply_route(trail, route)
     trail.visibility = visibility
     trail.group_id = group_id
     _commit(session)

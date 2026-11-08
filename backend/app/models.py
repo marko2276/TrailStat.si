@@ -45,6 +45,15 @@ class TrailVisibility(enum.StrEnum):
 class TrailSource(enum.StrEnum):
     OSM = "osm"
     MANUAL = "manual"
+    # A route the user loaded, for example from a GPX or KML file.
+    FILE = "file"
+
+
+class ElevationSource(enum.StrEnum):
+    # The Copernicus DEM, which needs attribution.
+    DEM = "dem"
+    # The heights in the route the user loaded.
+    FILE = "file"
 
 
 class InvitationStatus(enum.StrEnum):
@@ -256,6 +265,10 @@ class Trail(Base):
     elevation_gain_m: Mapped[int | None] = mapped_column(Integer)
     elevation_loss_m: Mapped[int | None] = mapped_column(Integer)
     highest_point_m: Mapped[int | None] = mapped_column(Integer)
+    # Where the elevation figures came from. NULL when typed in, or when there are none.
+    elevation_source: Mapped[ElevationSource | None] = mapped_column(
+        _enum(ElevationSource, "elevation_source")
+    )
     geometry: Mapped[WKBElement | None] = mapped_column(
         Geometry("LINESTRING", srid=4326, spatial_index=True)
     )

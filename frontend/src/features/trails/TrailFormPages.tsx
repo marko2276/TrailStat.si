@@ -6,6 +6,8 @@ import { ErrorMessage } from "../../components/ErrorMessage";
 import { Loading } from "../../components/Loading";
 import { useCreateTrail, useTrail, useUpdateTrail } from "./api";
 import type { TrailDetail, TrailUpdate } from "./api";
+import { RouteFileField } from "./RouteFileField";
+import type { LoadedRoute } from "./RouteFileField";
 import { DEFAULT_SHARING, toSharing, VisibilityFields } from "./VisibilityFields";
 import type { SharingValue } from "./VisibilityFields";
 
@@ -42,6 +44,8 @@ function TrailForm({
   initial,
   measurementsEditable,
   measurementsInUse = false,
+  routeEditable = false,
+  routeInUse = false,
   sharingEditable = true,
   submitLabel,
   pending,
@@ -54,19 +58,33 @@ function TrailForm({
   measurementsEditable: boolean;
   /** Shows them, but they can't be changed. */
   measurementsInUse?: boolean;
+  /** Whether a route can be loaded from a file. It then replaces the measurement fields. */
+  routeEditable?: boolean;
+  /** Says why the trail's route can no longer be replaced. */
+  routeInUse?: boolean;
   sharingEditable?: boolean;
   submitLabel: string;
   pending: boolean;
   error: unknown;
   cancelTo: string;
-  onSubmit: (values: Values) => void;
+  onSubmit: (values: Values, route: LoadedRoute | null) => void;
 }) {
   const { t } = useTranslation("trails");
   const [values, setValues] = useState(initial);
   const [errors, setErrors] = useState<FieldErrors>({});
+  const [route, setRoute] = useState<LoadedRoute | null>(null);
+  const typedMeasurements = measurementsEditable && route === null;
 
   function set<K extends keyof Values>(key: K, value: Values[K]) {
     setValues((current) => ({ ...current, [key]: value }));
+  }
+
+  function chooseRoute(loaded: LoadedRoute | null) {
+    setRoute(loaded);
+    if (loaded?.name) {
+      const name = loaded.name;
+      setValues((current) => (current.name.trim() ? current : { ...current, name }));
+    }
   }
 
   function validate(): FieldErrors {
@@ -75,7 +93,7 @@ function TrailForm({
     if (values.sharing.visibility === "group" && !values.sharing.groupId) {
       found.group = t("validation.group");
     }
-    if (measurementsEditable && !measurementsInUse) {
+    if (typedMeasurements && !measurementsInUse) {
       const km = parseNumber(values.distanceKm);
       // Below half a metre rounds to nothing.
       if (!(km * 1000 >= 0.5 && km <= MAX_DISTANCE_KM)) found.distance = t("validation.distance");
@@ -95,7 +113,7 @@ function TrailForm({
     event.preventDefault();
     const found = validate();
     setErrors(found);
-    if (Object.keys(found).length === 0) onSubmit(values);
+    if (Object.keys(found).length === 0) onSubmit(values, route);
   }
 
   function fieldError(key: keyof FieldErrors) {
@@ -119,7 +137,9 @@ function TrailForm({
         />
         {fieldError("name")}
       </div>
-      {measurementsEditable && (
+      {routeEditable && <RouteFileField value={route} onChange={chooseRoute} />}
+      {routeInUse && <p className="muted">{t("edit.routeInUse")}</p>}
+      {typedMeasurements && (
         <>
           <div className="field">
             <label htmlFor="trail-distance">{t("fields.distanceKm")}</label>
@@ -222,12 +242,13 @@ export function NewTrailPage() {
         pending={create.isPending}
         error={create.error}
         cancelTo="/trails"
-        onSubmit={(values) =>
+        routeEditable
+        onSubmit={(values, route) =>
           create.mutate(
             {
               name: values.name.trim(),
               description: values.description.trim() || null,
-              ...measurementsFrom(values),
+              ...(route ? { geometry: route.geometry } : measurementsFrom(values)),
               ...toSharing(values.sharing),
             },
             { onSuccess: (trail) => void navigate(`/trails/${trail.id}`) },
@@ -256,16 +277,22 @@ function EditForm({ trail }: { trail: TrailDetail }) {
       }}
       measurementsEditable={manual}
       measurementsInUse={manual && !trail.can_edit_measurements}
+      routeEditable={trail.can_replace_route}
+      routeInUse={trail.source === "file" && !trail.can_replace_route}
       sharingEditable={trail.can_change_sharing}
       submitLabel={t("common:save")}
       pending={update.isPending}
       error={update.error}
       cancelTo={`/trails/${trail.id}`}
-      onSubmit={(values) => {
+      onSubmit={(values, route) => {
         const changes: TrailUpdate = {
           name: values.name.trim(),
           description: values.description.trim() || null,
-          ...(manual && trail.can_edit_measurements ? measurementsFrom(values) : {}),
+          ...(route
+            ? { geometry: route.geometry }
+            : manual && trail.can_edit_measurements
+              ? measurementsFrom(values)
+              : {}),
           ...(trail.can_change_sharing ? toSharing(values.sharing) : {}),
         };
         update.mutate(changes, {
