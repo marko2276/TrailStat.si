@@ -46,6 +46,15 @@ class Settings(BaseSettings):
     # Donations with Flik, to this phone number. Off while empty. Shown publicly.
     donation_flik_number: str = ""
 
+    # Hanko user IDs (comma-separated) that may open the admin page. Empty: nobody.
+    admin_user_ids: str = ""
+    # Shown on the admin page, e.g. the git commit the server was built from.
+    app_version: str = "dev"
+
+    @property
+    def admin_subjects(self) -> frozenset[str]:
+        return frozenset(part.strip() for part in self.admin_user_ids.split(",") if part.strip())
+
     @model_validator(mode="after")
     def _check_donations(self) -> "Settings":
         # In every environment: a wrong IBAN would send people's money nowhere, or elsewhere.

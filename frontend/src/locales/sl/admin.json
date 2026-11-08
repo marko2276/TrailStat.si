@@ -1,0 +1,61 @@
+{
+  "title": "Administracija",
+  "unknown": "neznano",
+  "yes": "da",
+  "no": "ne",
+  "users": {
+    "title": "Uporabniki",
+    "total": "Računi",
+    "new7": "Novi, zadnjih 7 dni",
+    "new30": "Novi, zadnjih 30 dni",
+    "active30": "Aktivni, zadnjih 30 dni",
+    "byLanguage": "Po jeziku"
+  },
+  "content": {
+    "title": "Vsebina",
+    "trails": "Poti",
+    "archived": "Arhivirane poti",
+    "hikes": "Pohodi",
+    "hikes30": "Pohodi, zadnjih 30 dni",
+    "groups": "Skupine",
+    "memberships": "Članstva v skupinah",
+    "guests": "Gostje",
+    "invitations": "Odprta povabila",
+    "joinRequests": "Odprte prošnje za včlanitev",
+    "bySource": "Poti po viru",
+    "byVisibility": "Poti po vidnosti"
+  },
+  "sources": {
+    "osm": "OpenStreetMap",
+    "file": "datoteka",
+    "manual": "ročno"
+  },
+  "visibility": {
+    "private": "zasebne",
+    "group": "skupinske",
+    "public": "javne"
+  },
+  "database": {
+    "title": "Podatkovna baza",
+    "size": "Velikost",
+    "migration": "Migracija",
+    "largestTables": "Največje tabele",
+    "table": "Tabela",
+    "tableSize": "Velikost",
+    "rows": "Vrstice (ocena)"
+  },
+  "server": {
+    "title": "Strežnik",
+    "version": "Različica",
+    "environment": "Okolje",
+    "startedAt": "Teče od",
+    "elevationData": "Višinski podatki",
+    "tiles_one": "{{count}} ploščica, {{size}}",
+    "tiles_two": "{{count}} ploščici, {{size}}",
+    "tiles_few": "{{count}} ploščice, {{size}}",
+    "tiles_other": "{{count}} ploščic, {{size}}",
+    "email": "E-pošta nastavljena",
+    "bankTransfer": "Donacije z nakazilom",
+    "flik": "Donacije s Flikom"
+  }
+}

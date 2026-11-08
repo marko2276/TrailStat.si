@@ -2,13 +2,14 @@
 
 import enum
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from geoalchemy2 import Geometry, WKBElement
 from sqlalchemy import (
     BigInteger,
     CheckConstraint,
+    Date,
     DateTime,
     Enum,
     ForeignKey,
@@ -103,6 +104,9 @@ class User(Base):
     # NULL until the frontend stored the language the user first saw.
     locale: Mapped[str | None] = mapped_column(String(10))
     created_at: Mapped[datetime] = _created_at()
+    # The day (UTC) the user last used the app, for counting active users. Only the day, so it
+    # is written at most once a day and says little about when someone is online.
+    last_seen_on: Mapped[date | None] = mapped_column(Date)
 
 
 class Group(Base):

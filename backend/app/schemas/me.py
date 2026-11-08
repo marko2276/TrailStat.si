@@ -14,6 +14,8 @@ class Me(ApiModel):
     city: str | None
     avatar_url: str | None
     locale: str | None
+    # Whether the admin page is open to this user.
+    is_admin: bool = False
 
 
 DisplayName = Annotated[

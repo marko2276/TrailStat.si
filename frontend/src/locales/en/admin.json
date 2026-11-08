@@ -1,0 +1,59 @@
+{
+  "title": "Admin",
+  "unknown": "unknown",
+  "yes": "yes",
+  "no": "no",
+  "users": {
+    "title": "Users",
+    "total": "Accounts",
+    "new7": "New, last 7 days",
+    "new30": "New, last 30 days",
+    "active30": "Active, last 30 days",
+    "byLanguage": "By language"
+  },
+  "content": {
+    "title": "Content",
+    "trails": "Trails",
+    "archived": "Archived trails",
+    "hikes": "Hikes",
+    "hikes30": "Hikes, last 30 days",
+    "groups": "Groups",
+    "memberships": "Group memberships",
+    "guests": "Guests",
+    "invitations": "Pending invitations",
+    "joinRequests": "Pending join requests",
+    "bySource": "Trails by source",
+    "byVisibility": "Trails by visibility"
+  },
+  "sources": {
+    "osm": "OpenStreetMap",
+    "file": "file",
+    "manual": "manual"
+  },
+  "visibility": {
+    "private": "private",
+    "group": "group",
+    "public": "public"
+  },
+  "database": {
+    "title": "Database",
+    "size": "Size",
+    "migration": "Migration",
+    "largestTables": "Largest tables",
+    "table": "Table",
+    "tableSize": "Size",
+    "rows": "Rows (estimate)"
+  },
+  "server": {
+    "title": "Server",
+    "version": "Version",
+    "environment": "Environment",
+    "startedAt": "Running since",
+    "elevationData": "Elevation data",
+    "tiles_one": "{{count}} tile, {{size}}",
+    "tiles_other": "{{count}} tiles, {{size}}",
+    "email": "E-mail configured",
+    "bankTransfer": "Donations by transfer",
+    "flik": "Donations with Flik"
+  }
+}

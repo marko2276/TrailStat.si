@@ -25,6 +25,8 @@ x-backend-environment: &backend-environment
   DONATION_CITY: ${DONATION_CITY:-}
   DONATION_PURPOSE: ${DONATION_PURPOSE:-Donacija TrailStat.si}
   DONATION_FLIK_NUMBER: ${DONATION_FLIK_NUMBER:-}
+  ADMIN_USER_IDS: ${ADMIN_USER_IDS:-}
+  APP_VERSION: ${APP_VERSION:-dev}
 
 services:
   db:

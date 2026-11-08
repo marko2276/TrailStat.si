@@ -26,6 +26,7 @@ const me = {
   city: null,
   avatar_url: null,
   locale: "en",
+  is_admin: false,
 };
 
 function renderIt() {

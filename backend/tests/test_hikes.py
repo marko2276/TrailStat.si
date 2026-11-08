@@ -947,6 +947,8 @@ def test_lists_do_not_run_a_query_per_hike(
         return len(statements)
 
     add_hikes(2)
+    # The first request of the day also records that the user was seen.
+    client.get("/api/me", headers=headers)
     urls = ("/api/hikes", f"/api/groups/{group_id}/hikes")
     before = [queries(url) for url in urls]
     add_hikes(8)

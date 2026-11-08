@@ -6,7 +6,7 @@
   },
   "data": {
     "title": "What we store",
-    "text": "Your e-mail address and name or nickname; optionally your country and city; your language; the trails, hikes and groups you create or join; and technical server logs. Group members can record you as an attendee, and can add guests identified only by a nickname."
+    "text": "Your e-mail address and name or nickname; optionally your country and city; your language; the day you last used the app (only the day, to count active users); the trails, hikes and groups you create or join; and technical server logs. Group members can record you as an attendee, and can add guests identified only by a nickname."
   },
   "why": {
     "title": "Why we store it",

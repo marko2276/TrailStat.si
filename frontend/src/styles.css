@@ -310,6 +310,22 @@ hanko-profile {
   gap: 1rem;
 }
 
+/* Admin */
+.admin {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin h2 {
+  margin-top: 0;
+}
+
+.admin caption {
+  text-align: left;
+  padding-bottom: 0.25rem;
+}
+
 /* Donations */
 .support {
   display: flex;

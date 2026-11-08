@@ -36,6 +36,9 @@ services:
       DONATION_NAME: Planinsko društvo Test
       DONATION_CITY: 1000 Ljubljana
       DONATION_FLIK_NUMBER: "+386 41 000 000"
+      # The stand-in's user ID for admin@example.com: the first 32 hex digits of its SHA-256.
+      ADMIN_USER_IDS: 258d8dc916db8cea2cafb6c3cd0cb024
+      APP_VERSION: e2e
     depends_on:
       mock-hanko:
         condition: service_healthy
