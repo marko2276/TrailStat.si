@@ -24,6 +24,7 @@ x-backend-environment: &backend-environment
   DONATION_STREET: ${DONATION_STREET:-}
   DONATION_CITY: ${DONATION_CITY:-}
   DONATION_PURPOSE: ${DONATION_PURPOSE:-Donacija TrailStat.si}
+  DONATION_FLIK_NUMBER: ${DONATION_FLIK_NUMBER:-}
 
 services:
   db:

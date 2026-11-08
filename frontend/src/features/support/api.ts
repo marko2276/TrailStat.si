@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { api, ApiError, withQuery } from "../../lib/api";
 
-/** Where to send a donation by bank transfer. The server answers 404 when donations are off. */
-export interface DonationDetails {
+/** Where to send a donation by bank transfer, typed in by hand. */
+export interface BankTransfer {
   iban: string;
   name: string;
   street: string | null;
@@ -10,6 +10,18 @@ export interface DonationDetails {
   purpose: string;
   /** "SI99": the payment needs no reference. */
   reference: string;
+}
+
+/** The phone number to send a donation to with Flik, and a message to send with it. */
+export interface Flik {
+  number: string;
+  message: string;
+}
+
+/** At least one is set. The server answers 404 when donations are off. */
+export interface DonationDetails {
+  bank_transfer: BankTransfer | null;
+  flik: Flik | null;
 }
 
 /** The details, or null when donations are off. They change only with the server's settings. */

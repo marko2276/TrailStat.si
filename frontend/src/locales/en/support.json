@@ -10,6 +10,12 @@
     "altOwnAmount": "UPN QR code for a donation, without an amount",
     "howTo": "Scan the code in your bank's mobile app, with the option to pay a UPN QR. The details are filled in for you; you can still change the amount before you pay."
   },
+  "flik": {
+    "title": "Send with Flik",
+    "copy": "Copy number",
+    "copied": "Number copied.",
+    "howTo": "In your bank's mobile app, choose Flik and send any amount to this phone number. You can add “{{message}}” as the message."
+  },
   "transfer": {
     "title": "Or transfer by hand",
     "recipient": "Recipient",
