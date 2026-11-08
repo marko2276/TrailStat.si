@@ -14,15 +14,19 @@ This file lists what features rely on from each other. Change it together with t
 ## Trails (`app/api/trails.py`)
 
 `TrailSummary`:
-`{id, name, visibility: "public"|"private"|"group", group_id, owner_user_id, can_edit, source: "osm"|"manual",
+`{id, name, visibility: "public"|"private"|"group", group_id, owner_user_id, can_edit, source: "osm"|"manual"|"file",
 distance_m, elevation_gain_m|null, archived: bool}`
 
 - `GET /trails?q=&scope=all|public|mine|group&group_id=&include_archived=false&sort=name|distance|elevation&order=asc|desc`
   → page of `TrailSummary`, only trails the user can see. `scope=mine` means created by the user.
   `include_archived` adds only the archived trails the user can edit.
 - `GET /trails/{id}` → `TrailSummary` + `{description, elevation_loss_m, highest_point_m, geometry: GeoJSON|null,
-  elevation_profile: [[distance_m, elevation_m], ...]|null, osm_relation_id, can_edit_measurements,
-  created_at, updated_at}`
+  elevation_profile: [[distance_m, elevation_m], ...]|null, elevation_source: "dem"|"file"|null,
+  osm_relation_id, can_edit_measurements, can_replace_route, created_at, updated_at}`
+
+`source: "file"` is a trail whose route the user loaded, for example from a GPX or KML file read in
+the browser. `elevation_source` says where its elevation figures came from: `"dem"` (the Copernicus
+DEM, which needs attribution), `"file"` (the heights sent with the route), or null (typed in, or none).
 
 An archived trail stays readable by id, for hikes that reference it. Elevation fields and the profile
 are null for manual trails without those values, and for imported trails outside the elevation data.
@@ -33,6 +37,9 @@ also the group's admins. Others get 403, or 404 if they cannot see the trail. Tr
 
 - `POST /trails` `{name, distance_m, elevation_gain_m, description?, highest_point_m?, visibility, group_id?}`
   → 201. `group_id` is required for group visibility, which needs membership, and refused for others.
+  Instead of the measurements, a `geometry` can be sent: a route, from which distance and elevation
+  are measured, making a `"file"` trail. Both together give 422 `measurements_from_route`; neither
+  gives 422 `distance_m_required` or `elevation_gain_m_required`.
 - `PATCH /trails/{id}` with any of those fields. Only the fields present change. Changing visibility or
   group rechecks membership and the name. Distance and elevation of imported trails cannot be changed
   (422 `osm_measurements_read_only`). Once a hike on the trail has an attendee other than the editor,
@@ -40,9 +47,26 @@ also the group's admins. Others get 403, or 404 if they cannot see the trail. Tr
   409 `trail_measurements_in_use`, as these are in that attendee's statistics. Sending the current
   value is no change. The detail's `can_edit_measurements` tells the UI. `elevation_loss_m` is never
   writable: it comes from the elevation data.
+- `PATCH /trails/{id}` `{geometry}` loads a new route into a manual or file trail, which becomes a
+  file trail, measured from it. The same lock applies (409 `trail_measurements_in_use`). Not on
+  imported trails (422 `osm_route_read_only`), not together with measurements (422
+  `measurements_from_route`), and a route cannot be removed (422 `route_required`). A file trail's
+  measurements can't be typed in (422 `route_measurements_read_only`). The detail's
+  `can_replace_route` tells the UI.
 - `POST /trails/{id}/archive`, `POST /trails/{id}/unarchive`. Doing either twice changes nothing.
 
 Names are unique within a scope, ignoring case, including archived trails: 409 `trail_name_taken`.
+
+Routes. A `geometry` is a GeoJSON LineString of 2 to 100,000 positions `[longitude, latitude]` or
+`[longitude, latitude, height_m]`. It is simplified (GPS jitter under 3 m is dropped, at most 5,000
+points are kept), and only positions are stored. Elevation comes from the DEM; where the DEM does
+not cover the whole route, from the heights sent, if every point has one; otherwise there is none.
+A route that never moves gives 422 `route_too_short`, one over 10,000 km 422 `route_too_long`.
+Previews and saves of a route count together: 30 a minute per user (429 `rate_limited`).
+
+- `POST /trails/route-preview` `{geometry}` → `{geometry, distance_m, elevation_gain_m,
+  elevation_loss_m, highest_point_m, elevation_profile, elevation_source}`: what a trail with this
+  route would get. Nothing is saved.
 
 OpenStreetMap, through Overpass. A failing, overloaded or slow Overpass gives 503 `osm_unavailable`,
 and so do more than 3 calls at a time on this server.

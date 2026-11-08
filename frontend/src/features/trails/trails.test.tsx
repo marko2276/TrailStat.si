@@ -52,6 +52,8 @@ const summary = {
 const manualDetail = {
   can_change_sharing: true,
   can_edit_measurements: true,
+  can_replace_route: true,
+  elevation_source: null,
   ...summary,
   owner_name: "Marko",
   group_name: null,
@@ -77,6 +79,9 @@ const line = {
 const osmDetail = {
   ...manualDetail,
   source: "osm",
+  can_edit_measurements: false,
+  can_replace_route: false,
+  elevation_source: "dem",
   osm_relation_id: 19446684,
   geometry: line,
   elevation_gain_m: 300,
@@ -1028,5 +1033,265 @@ describe("elevation chart", () => {
     expect(niceTicks(0, 10, 5)).toEqual([0, 2, 4, 6, 8, 10]);
     expect(niceTicks(980, 1320, 4)).toEqual([1000, 1100, 1200, 1300]);
     expect(niceTicks(0, 0.5, 2)).toEqual([0, 0.5]);
+  });
+});
+
+describe("loading a route from a file", () => {
+  const gpx = `<gpx xmlns="http://www.topografix.com/GPX/1/1"><trk><name>Krim iz ure</name><trkseg>
+    <trkpt lat="45.93" lon="14.47"><ele>300</ele></trkpt>
+    <trkpt lat="45.94" lon="14.48"><ele>320</ele></trkpt>
+    <trkpt lat="45.95" lon="14.49"><ele>350</ele></trkpt></trkseg></trk></gpx>`;
+  const sent = {
+    type: "LineString",
+    coordinates: [
+      [14.47, 45.93, 300],
+      [14.48, 45.94, 320],
+      [14.49, 45.95, 350],
+    ],
+  };
+  const preview = {
+    geometry: {
+      type: "LineString",
+      coordinates: [
+        [14.47, 45.93],
+        [14.49, 45.95],
+      ],
+    },
+    distance_m: 2720,
+    elevation_gain_m: 50,
+    elevation_loss_m: 0,
+    highest_point_m: 350,
+    elevation_profile: [
+      [0, 300],
+      [2720, 350],
+    ],
+    elevation_source: "file",
+  };
+  const fileDetail = {
+    ...manualDetail,
+    can_edit: true,
+    source: "file",
+    can_edit_measurements: false,
+    can_replace_route: true,
+    geometry: preview.geometry,
+    elevation_profile: preview.elevation_profile,
+    elevation_source: "file",
+  };
+
+  function upload(text = gpx, name = "krim.gpx") {
+    return userEvent.upload(
+      screen.getByLabelText("Route from a GPX or KML file (optional)"),
+      new File([text], name),
+    );
+  }
+
+  it("previews the route, suggests its name and saves it instead of typed measurements", async () => {
+    const api = mockApi({
+      "POST /api/trails/route-preview": preview,
+      "POST /api/trails": { ...fileDetail, id: "new-id" },
+      "GET /api/trails/new-id": { ...fileDetail, id: "new-id" },
+    });
+    renderRoutes("/trails/new");
+    await screen.findByLabelText("Name");
+
+    await upload();
+
+    const map = await screen.findByRole("region", { name: "Map of the route from the file" });
+    expect(map.getAttribute("data-points")).toBe("2");
+    expect(api.bodyOf("POST /api/trails/route-preview")).toEqual({ geometry: sent });
+    expect(screen.getByText("krim.gpx")).toBeTruthy();
+    expect(screen.getByText("2.7 km")).toBeTruthy();
+    expect(screen.getByRole("img", { name: "Elevation profile" })).toBeTruthy();
+    expect(screen.getByText("Elevation: from the heights in the file.")).toBeTruthy();
+    expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Krim iz ure");
+    expect(screen.queryByLabelText("Distance (km)")).toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: "Create trail" }));
+
+    await waitFor(() => expect(currentLocation()).toBe("/trails/new-id"));
+    expect(api.bodyOf("POST /api/trails")).toEqual({
+      name: "Krim iz ure",
+      description: null,
+      geometry: sent,
+      visibility: "private",
+    });
+  });
+
+  it("keeps a name the user already typed", async () => {
+    mockApi({ "POST /api/trails/route-preview": preview });
+    renderRoutes("/trails/new");
+    await userEvent.type(await screen.findByLabelText("Name"), "Moje ime");
+
+    await upload();
+
+    await screen.findByText("krim.gpx");
+    expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Moje ime");
+  });
+
+  it("goes back to typed measurements when the route is removed", async () => {
+    const api = mockApi({
+      "POST /api/trails/route-preview": preview,
+      "POST /api/trails": { ...manualDetail, id: "new-id" },
+      "GET /api/trails/new-id": { ...manualDetail, id: "new-id" },
+    });
+    renderRoutes("/trails/new");
+    await screen.findByLabelText("Name");
+    await upload();
+    await screen.findByText("krim.gpx");
+
+    await userEvent.click(screen.getByRole("button", { name: "Remove the route" }));
+    await userEvent.type(screen.getByLabelText("Distance (km)"), "3");
+    await userEvent.type(screen.getByLabelText("Elevation gain (m)"), "100");
+    await userEvent.click(screen.getByRole("button", { name: "Create trail" }));
+
+    await waitFor(() => expect(api.bodyOf("POST /api/trails")).toBeTruthy());
+    expect(api.bodyOf("POST /api/trails")).not.toHaveProperty("geometry");
+    expect(api.bodyOf("POST /api/trails")).toMatchObject({ distance_m: 3000 });
+    expect(screen.queryByRole("region")).toBeNull();
+  });
+
+  it("explains a file that has no route, without asking the server", async () => {
+    const api = mockApi({});
+    renderRoutes("/trails/new");
+    await screen.findByLabelText("Name");
+
+    await upload(`<gpx><wpt lat="46" lon="14"/></gpx>`, "point.gpx");
+
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "This file has no track or route with at least two points.",
+    );
+    expect(api.requests).toHaveLength(0);
+    expect(screen.getByLabelText("Distance (km)")).toBeTruthy();
+  });
+
+  it("explains why the server could not use the route", async () => {
+    mockApi({
+      "POST /api/trails/route-preview": { status: 422, body: { detail: "route_too_short" } },
+    });
+    renderRoutes("/trails/new");
+    await screen.findByLabelText("Name");
+
+    await upload();
+
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "The route needs at least two different points.",
+    );
+  });
+
+  it("says when the route has no elevation data", async () => {
+    mockApi({
+      "POST /api/trails/route-preview": {
+        ...preview,
+        elevation_gain_m: null,
+        elevation_loss_m: null,
+        highest_point_m: null,
+        elevation_profile: null,
+        elevation_source: null,
+      },
+    });
+    renderRoutes("/trails/new");
+    await screen.findByLabelText("Name");
+
+    await upload();
+
+    expect(await screen.findByText(/No elevation data is available for this route/)).toBeTruthy();
+    expect(screen.queryByRole("img", { name: "Elevation profile" })).toBeNull();
+  });
+
+  it("credits the elevation data when the route's elevation comes from it", async () => {
+    mockApi({ "POST /api/trails/route-preview": { ...preview, elevation_source: "dem" } });
+    renderRoutes("/trails/new");
+    await screen.findByLabelText("Name");
+
+    await upload();
+
+    expect(await screen.findByText(/Copernicus/)).toBeTruthy();
+  });
+
+  it("loads a route into a manual trail, sending it instead of the measurements", async () => {
+    const editable = { ...manualDetail, can_edit: true, visibility: "private" };
+    const api = mockApi({
+      "GET /api/trails/t1": editable,
+      "POST /api/trails/route-preview": preview,
+      "PATCH /api/trails/t1": fileDetail,
+    });
+    renderRoutes("/trails/t1/edit");
+    await screen.findByLabelText("Name");
+
+    await upload();
+    await screen.findByText("krim.gpx");
+    // The trail keeps its name.
+    expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Šmarna gora");
+    expect(screen.queryByLabelText("Distance (km)")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(currentLocation()).toBe("/trails/t1"));
+    expect(api.bodyOf("PATCH /api/trails/t1")).toEqual({
+      name: "Šmarna gora",
+      description: "Lepa pot",
+      geometry: sent,
+      visibility: "private",
+    });
+  });
+
+  it("offers replacing a file trail's route, but not typing its measurements", async () => {
+    const api = mockApi({
+      "GET /api/trails/t1": fileDetail,
+      "PATCH /api/trails/t1": fileDetail,
+    });
+    renderRoutes("/trails/t1/edit");
+
+    await screen.findByLabelText("Name");
+    expect(screen.getByLabelText("Route from a GPX or KML file (optional)")).toBeTruthy();
+    expect(screen.queryByLabelText("Distance (km)")).toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(api.bodyOf("PATCH /api/trails/t1")).toBeTruthy());
+    expect(api.bodyOf("PATCH /api/trails/t1")).not.toHaveProperty("geometry");
+    expect(api.bodyOf("PATCH /api/trails/t1")).not.toHaveProperty("distance_m");
+  });
+
+  it("explains why a route others rely on cannot be replaced", async () => {
+    mockApi({ "GET /api/trails/t1": { ...fileDetail, can_replace_route: false } });
+    renderRoutes("/trails/t1/edit");
+
+    await screen.findByLabelText("Name");
+    expect(screen.queryByLabelText("Route from a GPX or KML file (optional)")).toBeNull();
+    expect(screen.getByText(/The route can no longer be replaced/)).toBeTruthy();
+  });
+
+  it("does not offer a file for an imported trail", async () => {
+    mockApi({ "GET /api/trails/t1": { ...osmDetail, can_edit: true } });
+    renderRoutes("/trails/t1/edit");
+
+    await screen.findByLabelText("Name");
+    expect(screen.queryByLabelText("Route from a GPX or KML file (optional)")).toBeNull();
+  });
+
+  it("shows a file trail's map, profile and where its elevation came from", async () => {
+    mockApi({ "GET /api/trails/t1": fileDetail });
+    renderRoutes("/trails/t1");
+
+    expect(
+      await screen.findByRole("region", { name: "Map of the trail Šmarna gora" }),
+    ).toBeTruthy();
+    expect(screen.getByText("Elevation: from the heights in the file.")).toBeTruthy();
+    expect(screen.queryByText(/Copernicus/)).toBeNull();
+    expect(screen.queryByText(/OpenStreetMap contributors/)).toBeNull();
+  });
+
+  it("explains a file trail without elevation data", async () => {
+    mockApi({
+      "GET /api/trails/t1": {
+        ...fileDetail,
+        elevation_gain_m: null,
+        elevation_profile: null,
+        elevation_source: null,
+      },
+    });
+    renderRoutes("/trails/t1");
+
+    expect(await screen.findByText(/No elevation data is available for this route/)).toBeTruthy();
   });
 });

@@ -9,6 +9,7 @@ import type { TrailDetail } from "./api";
 import { OsmAttribution } from "./OsmAttribution";
 import { ElevationChart } from "./ElevationChart";
 import { LazyTrailMap } from "./LazyTrailMap";
+import { ElevationNote } from "./RouteFileField";
 import "./trails.css";
 
 function Stat({ label, children }: { label: string; children: ReactNode }) {
@@ -79,12 +80,12 @@ function Details({ trail }: { trail: TrailDetail }) {
         <section className="trail-section">
           <h2>{t("chart.title")}</h2>
           <ElevationChart profile={trail.elevation_profile} highestPoint={trail.highest_point_m} />
-          <p className="attribution muted">{t("copernicusAttribution")}</p>
+          <ElevationNote source={trail.elevation_source} />
         </section>
       )}
-      {imported && trail.elevation_gain_m === null && (
+      {trail.source !== "manual" && trail.elevation_gain_m === null && (
         <p className="card trail-section" role="note">
-          {t("noElevation")}
+          {imported ? t("noElevation") : t("routeFile.noElevation")}
         </p>
       )}
 

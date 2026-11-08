@@ -30,7 +30,7 @@ test("a solo hiker's hikes add up, through every filter, an edit and a delete", 
 
   // Two manual trails.
   await nav(page, "Trails");
-  await page.getByRole("link", { name: "Create manually" }).click();
+  await page.getByRole("link", { name: "Create manually or from a file" }).click();
   await createTrailInUi(page, { name: first, km: "12.5", gain: "850" });
   await expect(page.getByRole("heading", { name: first })).toBeVisible();
   await expect(page.getByText("12.5 km")).toBeVisible();
@@ -39,7 +39,7 @@ test("a solo hiker's hikes add up, through every filter, an edit and a delete", 
   await expectNoHorizontalScroll(page);
 
   await nav(page, "Trails");
-  await page.getByRole("link", { name: "Create manually" }).click();
+  await page.getByRole("link", { name: "Create manually or from a file" }).click();
   await createTrailInUi(page, { name: second, km: "8,25", gain: "400" });
   await expect(page.getByRole("heading", { name: second })).toBeVisible();
 

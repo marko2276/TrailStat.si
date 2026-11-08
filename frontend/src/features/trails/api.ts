@@ -1,12 +1,17 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, withQuery } from "../../lib/api";
 import type { Page } from "../../lib/api";
+import type { Position } from "./routeFile";
 import { invalidateSharedData } from "../../lib/sharedData";
 
 export type Visibility = "public" | "private" | "group";
 export type Scope = "all" | "public" | "mine" | "group";
 export type SortField = "name" | "distance" | "elevation";
 export type SortOrder = "asc" | "desc";
+/** "file": a route the user loaded, for example from a GPX or KML file. */
+export type TrailSource = "osm" | "manual" | "file";
+/** "dem": the Copernicus elevation data, which needs attribution. "file": the loaded route's. */
+export type ElevationSource = "dem" | "file";
 
 export interface LineString {
   type: "LineString";
@@ -20,7 +25,7 @@ export interface TrailSummary {
   group_id: string | null;
   owner_user_id: string | null;
   can_edit: boolean;
-  source: "osm" | "manual";
+  source: TrailSource;
   distance_m: number;
   /** null for imported trails outside the available elevation data */
   elevation_gain_m: number | null;
@@ -29,6 +34,8 @@ export interface TrailSummary {
 
 export interface TrailDetail extends TrailSummary {
   can_change_sharing: boolean;
+  /** whether a new route can be loaded: manual and file trails, until others' hikes use it */
+  can_replace_route: boolean;
   /** false for imported trails, and once someone else's hike on the trail counts them */
   can_edit_measurements: boolean;
   owner_name: string | null;
@@ -36,6 +43,8 @@ export interface TrailDetail extends TrailSummary {
   description: string | null;
   elevation_loss_m: number | null;
   highest_point_m: number | null;
+  /** null when typed in by hand, or when there are none */
+  elevation_source: ElevationSource | null;
   geometry: LineString | null;
   /** [distance_m, elevation_m] pairs */
   elevation_profile: [number, number][] | null;
@@ -60,15 +69,39 @@ export interface Sharing {
   group_id?: string;
 }
 
-export interface TrailCreate extends Sharing {
-  name: string;
-  description: string | null;
+/** A route as sent to the server: with a third value, the point's height in metres. */
+export interface RouteGeometry {
+  type: "LineString";
+  coordinates: Position[];
+}
+
+interface Measurements {
   distance_m: number;
   elevation_gain_m: number;
   highest_point_m: number | null;
 }
 
-export type TrailUpdate = Partial<TrailCreate>;
+/** Either typed-in measurements or a route, which the server measures. */
+export type TrailCreate = Sharing & {
+  name: string;
+  description: string | null;
+} & (Measurements | { geometry: RouteGeometry });
+
+export type TrailUpdate = Partial<
+  Sharing & Measurements & { name: string; description: string | null; geometry: RouteGeometry }
+>;
+
+/** What a trail with this route would get. Nothing is saved. */
+export interface RoutePreview {
+  /** simplified, as it would be stored */
+  geometry: LineString;
+  distance_m: number;
+  elevation_gain_m: number | null;
+  elevation_loss_m: number | null;
+  highest_point_m: number | null;
+  elevation_profile: [number, number][] | null;
+  elevation_source: ElevationSource | null;
+}
 
 export interface OsmRoute {
   relation_id: number;
@@ -146,6 +179,13 @@ export function useUpdateTrail(id: string) {
   return useTrailMutation((changes: TrailUpdate) =>
     api.patch<TrailDetail>(`/trails/${id}`, changes),
   );
+}
+
+export function usePreviewRoute() {
+  return useMutation({
+    mutationFn: (geometry: RouteGeometry) =>
+      api.post<RoutePreview>("/trails/route-preview", { geometry }),
+  });
 }
 
 export function useArchiveTrail(id: string) {

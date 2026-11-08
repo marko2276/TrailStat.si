@@ -140,7 +140,7 @@ test("archiving hides a trail for new hikes, and past hikes keep counting", asyn
   await page.goto("/hikes/new");
   await expect(page.getByLabel("Search trails")).toBeVisible();
   await nav(page, "Trails");
-  await page.getByRole("link", { name: "Create manually" }).click();
+  await page.getByRole("link", { name: "Create manually or from a file" }).click();
   await createTrailInUi(page, { name, km: "10", gain: "500" });
   await expect(page.getByRole("heading", { name })).toBeVisible();
   const trailPath = new URL(page.url()).pathname;

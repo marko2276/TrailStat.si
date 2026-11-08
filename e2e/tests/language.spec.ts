@@ -231,7 +231,7 @@ test("the language can be switched on any page, and stays after a reload", async
 
   const pages: [string, string, string][] = [
     ["/", "Statistics", "Statistika"],
-    ["/trails", "Create manually", "Ustvari ročno"],
+    ["/trails", "Create manually or from a file", "Ustvari ročno ali iz datoteke"],
     [`/trails/${trail.id}`, "12.5 km", "12,5 km"],
     ["/hikes", "My hikes", "Moji pohodi"],
     ["/groups", "Create group", "Ustvari skupino"],
