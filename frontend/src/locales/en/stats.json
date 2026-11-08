@@ -31,5 +31,13 @@
     "average": "Average"
   },
   "empty": "No hikes in this period.",
-  "summaryOnly": "You aren't a member of this group, so you see only its totals."
+  "summaryOnly": "You aren't a member of this group, so you see only its totals.",
+  "bestTimes": {
+    "title": "Best times by trail",
+    "hint": "Your fastest hike on each trail in this period.",
+    "hintGroup": "The group's fastest hike on each trail in this period.",
+    "trail": "Trail",
+    "best": "Best time",
+    "date": "On"
+  }
 }

@@ -8,6 +8,7 @@ import { useGroup, useMyGroups } from "../hikes/api";
 import { toDateInput } from "../hikes/localTime";
 import { PagedHikes } from "../hikes/PagedHikes";
 import { useGroupStats, useGroupSummary, useMyStats } from "./api";
+import { BestTimes } from "./BestTimes";
 import type { AttendeeTotals } from "./api";
 import { periodRange } from "./period";
 import type { Period, PeriodRange } from "./period";
@@ -23,6 +24,7 @@ function PersonalStats({ range }: { range: PeriodRange }) {
   return (
     <>
       <StatTiles totals={data} />
+      <BestTimes groupId={null} range={range} />
       <h2>{t("hikes")}</h2>
       <PagedHikes
         key={JSON.stringify(range)}
@@ -85,6 +87,7 @@ function MemberGroupStats({ groupId, range }: { groupId: string; range: PeriodRa
       ) : (
         <p className="muted">{t("empty")}</p>
       )}
+      <BestTimes groupId={groupId} range={range} />
       <h2>{t("hikes")}</h2>
       <PagedHikes
         key={`${groupId}${JSON.stringify(range)}`}

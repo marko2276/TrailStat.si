@@ -31,5 +31,13 @@
     "average": "Povprečje"
   },
   "empty": "V tem obdobju ni pohodov.",
-  "summaryOnly": "Niste član te skupine, zato vidite samo njene skupne podatke."
+  "summaryOnly": "Niste član te skupine, zato vidite samo njene skupne podatke.",
+  "bestTimes": {
+    "title": "Najboljši časi po poteh",
+    "hint": "Vaš najhitrejši pohod na vsaki poti v tem obdobju.",
+    "hintGroup": "Najhitrejši pohod skupine na vsaki poti v tem obdobju.",
+    "trail": "Pot",
+    "best": "Najboljši čas",
+    "date": "Datum"
+  }
 }

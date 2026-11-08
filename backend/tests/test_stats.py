@@ -62,6 +62,7 @@ class World:
         trail_c = make_trail(
             session, self.alice, distance_m=8_000, elevation_gain_m=300, archived=True
         )
+        self.trail_a, self.trail_b, self.trail_c = trail_a, trail_b, trail_c
         make_hike(
             session,
             trail_a,
@@ -336,3 +337,105 @@ class TestGroupFull:
         body = client.get(world.url, headers=auth_headers(world.bob)).json()
         assert body["totals"]["hike_count"] == 3
         assert breakdown(body)["Bob"]["hike_count"] == 1
+
+
+def best(rows: list[dict[str, Any]]) -> list[tuple[str, int, int, str]]:
+    """(trail name, hikes, best time, date of the best hike), in the order given."""
+    return [
+        (row["trail"]["name"], row["hike_count"], row["best_duration_s"], row["best_start_at"][:10])
+        for row in rows
+    ]
+
+
+class TestBestTimes:
+    def test_personal_best_per_trail_most_hiked_first(
+        self, client: TestClient, auth_headers: AuthHeaders, world: World
+    ) -> None:
+        # h1 and h4 on A, the faster on 10 January; h2 on B. Not h3, which Alice didn't attend.
+        rows = client.get("/api/stats/me/trails", headers=auth_headers(world.alice)).json()
+
+        assert best(rows) == [
+            (world.trail_a.name, 2, 3600, "2026-01-10"),
+            (world.trail_b.name, 1, 1800, "2026-02-01"),
+        ]
+        assert rows[0]["trail"] == {
+            "id": str(world.trail_a.id),
+            "name": world.trail_a.name,
+            "distance_m": 10_000,
+            "elevation_gain_m": 500,
+            "archived": False,
+        }
+        assert rows[0]["best_hike_id"]
+
+    def test_the_period_limits_which_hikes_compete(
+        self, client: TestClient, auth_headers: AuthHeaders, world: World
+    ) -> None:
+        rows = client.get(
+            "/api/stats/me/trails",
+            headers=auth_headers(world.alice),
+            params={"start_from": "2026-02-01T00:00:00Z", "start_to": "2026-03-01T00:00:00Z"},
+        ).json()
+
+        # Only the slower hike on A was in February. One hike each: ordered by name.
+        assert best(rows) == sorted(
+            [
+                (world.trail_a.name, 1, 7200, "2026-02-20"),
+                (world.trail_b.name, 1, 1800, "2026-02-01"),
+            ],
+            key=lambda row: row[0].lower(),
+        )
+
+    def test_equally_fast_hikes_name_the_first(
+        self,
+        client: TestClient,
+        auth_headers: AuthHeaders,
+        world: World,
+        session: Session,
+    ) -> None:
+        make_hike(
+            session,
+            world.trail_b,
+            world.alice,
+            users=[world.alice],
+            start_at=datetime(2026, 4, 1, 9, 0, tzinfo=UTC),
+            duration_s=1800,
+        )
+
+        rows = client.get("/api/stats/me/trails", headers=auth_headers(world.alice)).json()
+
+        assert (world.trail_b.name, 2, 1800, "2026-02-01") in best(rows)
+
+    def test_a_former_member_keeps_their_best_times(
+        self, client: TestClient, auth_headers: AuthHeaders, world: World
+    ) -> None:
+        rows = client.get("/api/stats/me/trails", headers=auth_headers(world.carol)).json()
+
+        assert best(rows) == [(world.trail_b.name, 1, 1800, "2026-02-01")]
+
+    def test_no_hikes_no_best_times(
+        self, client: TestClient, auth_headers: AuthHeaders, world: World
+    ) -> None:
+        assert client.get("/api/stats/me/trails", headers=auth_headers(world.outsider)).json() == []
+
+    def test_group_best_per_trail_including_archived_trails(
+        self, client: TestClient, auth_headers: AuthHeaders, world: World
+    ) -> None:
+        # The group's hikes only: h1, h2 and h3, not Alice's own h4.
+        rows = client.get(f"{world.url}/trails", headers=auth_headers(world.bob)).json()
+
+        assert sorted(best(rows)) == sorted(
+            [
+                (world.trail_a.name, 1, 3600, "2026-01-10"),
+                (world.trail_b.name, 1, 1800, "2026-02-01"),
+                (world.trail_c.name, 1, 5400, "2026-03-15"),
+            ]
+        )
+        archived = [row for row in rows if row["trail"]["id"] == str(world.trail_c.id)]
+        assert archived[0]["trail"]["archived"] is True
+
+    def test_group_best_times_are_for_members_only(
+        self, client: TestClient, auth_headers: AuthHeaders, world: World
+    ) -> None:
+        url = f"{world.url}/trails"
+        assert client.get(url, headers=auth_headers(world.outsider)).status_code == 403
+        assert client.get(url, headers=auth_headers(world.carol)).status_code == 403

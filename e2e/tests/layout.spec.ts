@@ -159,21 +159,27 @@ test("a wide table scrolls inside its own frame on a phone, not the whole page",
   });
   const { page, problems } = await signedInPage(browser, email);
   await page.goto(`/stats?group=${group.id}`);
-  const table = page.getByRole("table");
-  await expect(table).toBeVisible();
+  // The breakdown by attendee, and the best times by trail.
+  const tables = page.getByRole("table");
+  await expect(tables).toHaveCount(2);
   await expectNoHorizontalScroll(page);
-  // Reachable by scrolling the frame: the last column can be brought into view.
-  const lastHeader = table.getByRole("columnheader", { name: "Average" });
-  await lastHeader.scrollIntoViewIfNeeded();
-  await expect(lastHeader).toBeInViewport();
-  // A duration with its units stays on one line, rather than one word per line.
-  const cell = table.getByRole("cell").last();
-  await expect(cell).toHaveText("100 hr");
-  const lineHeight = await cell.evaluate((element) => {
-    const range = document.createRange();
-    range.selectNodeContents(element);
-    return range.getClientRects().length;
-  });
-  expect(lineHeight).toBe(1);
+  for (const [index, last, duration] of [
+    [0, "Average", page.getByRole("table").nth(0).getByRole("cell").last()],
+    [1, "On", page.getByRole("table").nth(1).getByRole("cell").nth(2)],
+  ] as const) {
+    const table = tables.nth(index);
+    // Reachable by scrolling the frame: the last column can be brought into view.
+    const lastHeader = table.getByRole("columnheader", { name: last, exact: true });
+    await lastHeader.scrollIntoViewIfNeeded();
+    await expect(lastHeader).toBeInViewport();
+    // A duration with its units stays on one line, rather than one word per line.
+    await expect(duration).toHaveText("100 hr");
+    const lineHeight = await duration.evaluate((element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return range.getClientRects().length;
+    });
+    expect(lineHeight).toBe(1);
+  }
   expect(problems).toEqual([]);
 });

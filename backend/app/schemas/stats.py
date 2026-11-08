@@ -1,6 +1,8 @@
 import uuid
+from datetime import datetime
 
 from app.schemas.common import ApiModel
+from app.schemas.hikes import HikeTrail
 
 
 class Totals(ApiModel):
@@ -19,6 +21,16 @@ class AttendeeTotals(ApiModel):
     guest_id: uuid.UUID | None
     name: str
     totals: Totals
+
+
+class TrailBestTime(ApiModel):
+    """The fastest hike on a trail. Of equally fast hikes, the first."""
+
+    trail: HikeTrail
+    hike_count: int
+    best_duration_s: int
+    best_hike_id: uuid.UUID
+    best_start_at: datetime
 
 
 class GroupStats(ApiModel):
