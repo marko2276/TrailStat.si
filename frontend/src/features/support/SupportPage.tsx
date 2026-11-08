@@ -39,7 +39,8 @@ export function SupportPage() {
 function UpnQr() {
   const { t, i18n } = useTranslation("support");
   const [amount, setAmount] = useState<number | null>(AMOUNTS[2]);
-  const euro = new Intl.NumberFormat(i18n.language, {
+  // The resolved language: the detected one can be anything the browser reports, such as "C".
+  const euro = new Intl.NumberFormat(i18n.resolvedLanguage ?? "en", {
     style: "currency",
     currency: "EUR",
     maximumFractionDigits: 0,

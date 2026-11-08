@@ -73,6 +73,15 @@ describe("SupportPage", () => {
     expect(screen.queryByText("IBAN")).toBeNull();
   });
 
+  it("works whatever language the browser reports", async () => {
+    mockApi({ "GET /api/donations": details });
+    // Not a valid locale: number formatting must use the language the app resolved to.
+    await i18n.changeLanguage("C");
+    render(<SupportPage />);
+
+    expect(await screen.findByRole("radio", { name: "€10" })).toBeTruthy();
+  });
+
   it("says so when donations are off", async () => {
     mockApi({ "GET /api/donations": { status: 404, body: { detail: "donations_off" } } });
     render(<SupportPage />);
