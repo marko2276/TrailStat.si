@@ -31,6 +31,10 @@ services:
       SMTP_STARTTLS: "false"
       SMTP_USER: ""
       APP_URL: http://localhost:${E2E_APP_PORT:-18080}
+      # The example account of the UPN QR documentation.
+      DONATION_IBAN: SI56 0201 7001 4356 205
+      DONATION_NAME: Planinsko društvo Test
+      DONATION_CITY: 1000 Ljubljana
     depends_on:
       mock-hanko:
         condition: service_healthy

@@ -3,7 +3,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.api import groups, health, hikes, me, stats, trails
+from app.api import donations, groups, health, hikes, me, stats, trails
 from app.config import Settings, get_settings
 
 api = APIRouter(prefix="/api")
@@ -14,6 +14,7 @@ api.include_router(hikes.router)
 api.include_router(hikes.group_router)
 api.include_router(groups.router)
 api.include_router(stats.router)
+api.include_router(donations.router)
 
 
 async def validation_error(request: Request, exc: Exception) -> JSONResponse:

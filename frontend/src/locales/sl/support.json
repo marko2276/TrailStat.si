@@ -1,0 +1,22 @@
+{
+  "title": "Podprite TrailStat.si",
+  "intro": "TrailStat.si je brezplačen, brez oglasov in brez sledenja. Če vam koristi, lahko z donacijo pomagate plačati strežnik.",
+  "off": "Donacije trenutno niso odprte.",
+  "qr": {
+    "title": "Plačajte z mobilno banko",
+    "amount": "Znesek",
+    "ownAmount": "Po vaši izbiri",
+    "alt": "Koda UPN QR za donacijo v znesku {{amount}}",
+    "altOwnAmount": "Koda UPN QR za donacijo, brez zneska",
+    "howTo": "Kodo skenirajte v mobilni aplikaciji svoje banke, z možnostjo plačila UPN QR. Podatki se izpolnijo sami; znesek lahko pred plačilom še spremenite."
+  },
+  "transfer": {
+    "title": "Ali nakažite ročno",
+    "recipient": "Prejemnik",
+    "iban": "IBAN",
+    "purpose": "Namen",
+    "reference": "Referenca"
+  },
+  "direct": "Denar gre neposredno na zgornji bančni račun. TrailStat.si ga nikoli ne upravlja in o donacijah ničesar ne beleži.",
+  "thanks": "Hvala!"
+}

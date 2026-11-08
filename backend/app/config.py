@@ -2,9 +2,11 @@ from functools import lru_cache
 from typing import Literal
 from urllib.parse import urlsplit
 
-from pydantic import SecretStr
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings
 from sqlalchemy import URL
+
+from app.services.upn_qr import Payee, PayeeError, normalise_iban
 
 
 class Settings(BaseSettings):
@@ -32,6 +34,35 @@ class Settings(BaseSettings):
     smtp_starttls: bool = True
     # The address of the app, for links in e-mails.
     app_url: str = "http://localhost:5173"
+
+    # Donations by bank transfer, with a UPN QR code. Off without an IBAN. The name, street and
+    # city are the account holder's, as on a payment order; the street may stay empty.
+    donation_iban: str = ""
+    donation_name: str = ""
+    donation_street: str = ""
+    donation_city: str = ""
+    donation_purpose: str = "Donacija TrailStat.si"
+
+    @model_validator(mode="after")
+    def _check_donations(self) -> "Settings":
+        # In every environment: a wrong IBAN would send people's money nowhere, or elsewhere.
+        try:
+            _ = self.donation_payee
+        except PayeeError as exc:
+            raise ValueError(f"DONATION_* settings: {exc}") from exc
+        return self
+
+    @property
+    def donation_payee(self) -> Payee | None:
+        if not self.donation_iban.strip():
+            return None
+        return Payee(
+            iban=normalise_iban(self.donation_iban),
+            name=self.donation_name.strip(),
+            street=self.donation_street.strip(),
+            city=self.donation_city.strip(),
+            purpose=self.donation_purpose.strip(),
+        )
 
     @property
     def is_production(self) -> bool:

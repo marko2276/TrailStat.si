@@ -305,4 +305,64 @@ hanko-profile {
   padding: 1rem;
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
   font-size: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+/* Donations */
+.support-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  max-width: 32rem;
+}
+
+.support-qr h2 {
+  margin: 0;
+}
+
+.amount-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.amount-choice legend {
+  font-weight: 500;
+  padding: 0;
+  margin-bottom: 0.25rem;
+}
+
+.amount-choice label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* White in dark mode too: banking apps need the contrast. */
+.upn-qr {
+  width: 17rem;
+  max-width: 100%;
+  height: auto;
+  background: #fff;
+  border-radius: var(--radius);
+}
+
+.donation-details {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.35rem 1rem;
+}
+
+.donation-details dt {
+  color: var(--color-muted);
+}
+
+.donation-details dd {
+  margin: 0;
 }

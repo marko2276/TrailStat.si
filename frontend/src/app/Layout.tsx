@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet } from "react-router";
 import { useAuth } from "../auth/AuthContext";
 import { LanguageSwitcher } from "../features/profile/LanguageSwitcher";
 import { LanguageSync } from "../features/profile/LanguageSync";
+import { SupportLink } from "../features/support/SupportLink";
 import { navItems } from "./routes";
 
 export function Layout() {
@@ -43,6 +44,7 @@ export function Layout() {
       </main>
       <footer className="site-footer">
         <Link to="/privacy">{t("privacy")}</Link>
+        <SupportLink />
       </footer>
     </>
   );

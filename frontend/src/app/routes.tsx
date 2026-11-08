@@ -6,6 +6,7 @@ import * as groups from "../features/groups/routes";
 import * as hikes from "../features/hikes/routes";
 import * as profile from "../features/profile/routes";
 import * as stats from "../features/stats/routes";
+import * as support from "../features/support/routes";
 import * as trails from "../features/trails/routes";
 import { HomePage } from "./HomePage";
 import { Layout } from "./Layout";
@@ -24,6 +25,7 @@ export const appRoutes: RouteObject[] = [
     children: [
       { path: "login", element: <LoginPage /> },
       ...profile.publicRoutes,
+      ...support.publicRoutes,
       {
         element: <RequireAuth />,
         children: [
