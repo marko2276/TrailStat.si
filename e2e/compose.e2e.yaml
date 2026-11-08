@@ -35,6 +35,7 @@ services:
       DONATION_IBAN: SI56 0201 7001 4356 205
       DONATION_NAME: Planinsko društvo Test
       DONATION_CITY: 1000 Ljubljana
+      DONATION_FLIK_NUMBER: "+386 41 000 000"
     depends_on:
       mock-hanko:
         condition: service_healthy

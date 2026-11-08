@@ -6,7 +6,8 @@ from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings
 from sqlalchemy import URL
 
-from app.services.upn_qr import Payee, PayeeError, normalise_iban
+from app.services.flik import normalise_flik_number
+from app.services.upn_qr import Payee, normalise_iban
 
 
 class Settings(BaseSettings):
@@ -42,13 +43,16 @@ class Settings(BaseSettings):
     donation_street: str = ""
     donation_city: str = ""
     donation_purpose: str = "Donacija TrailStat.si"
+    # Donations with Flik, to this phone number. Off while empty. Shown publicly.
+    donation_flik_number: str = ""
 
     @model_validator(mode="after")
     def _check_donations(self) -> "Settings":
         # In every environment: a wrong IBAN would send people's money nowhere, or elsewhere.
         try:
             _ = self.donation_payee
-        except PayeeError as exc:
+            _ = self.donation_flik_number_display
+        except ValueError as exc:
             raise ValueError(f"DONATION_* settings: {exc}") from exc
         return self
 
@@ -63,6 +67,12 @@ class Settings(BaseSettings):
             city=self.donation_city.strip(),
             purpose=self.donation_purpose.strip(),
         )
+
+    @property
+    def donation_flik_number_display(self) -> str | None:
+        if not self.donation_flik_number.strip():
+            return None
+        return normalise_flik_number(self.donation_flik_number)
 
     @property
     def is_production(self) -> bool:

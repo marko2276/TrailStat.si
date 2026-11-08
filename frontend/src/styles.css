@@ -311,7 +311,17 @@ hanko-profile {
 }
 
 /* Donations */
-.support-qr {
+.support {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.support > p {
+  margin: 0;
+}
+
+.support-option {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -319,7 +329,8 @@ hanko-profile {
   max-width: 32rem;
 }
 
-.support-qr h2 {
+.support-option h2,
+.support-option p {
   margin: 0;
 }
 

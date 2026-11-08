@@ -155,11 +155,15 @@ Error codes (422): `trail_archived`, `trail_not_visible_to_group`, `attendees_re
 
 ## Donations (`app/api/donations.py`)
 
-No account needed. Both answer 404 `donations_off` while `DONATION_IBAN` is not set.
+No account needed.
 
-- `GET /donations` → `{iban, name, street, city, purpose, reference}`: where to send a donation by
-  hand. The IBAN is in groups of four; `street` may be null; `reference` is `SI99` (none).
-- `GET /donations/upn-qr.svg?amount_cents=` → the UPN QR code as an SVG image, with the amount
+- `GET /donations` → `{bank_transfer: {iban, name, street, city, purpose, reference} | null,
+  flik: {number, message} | null}`, at least one set; 404 `donations_off` when neither is
+  configured. The IBAN is in groups of four; `street` may be null; `reference` is `SI99` (none).
+  The Flik number is a Slovenian phone number in the national form, `041 123 456`; `message` is
+  the suggested message to send with the money.
+- `GET /donations/upn-qr.svg?amount_cents=` (404 `donations_off` without `DONATION_IBAN`) → the
+  UPN QR code as an SVG image, with the amount
   (100 to 1,000,000 cents) or, without it, for the payer to enter one. Cached for an hour. The
   content follows the UPN QR standard of the Bank Association of Slovenia (`app/services/upn_qr.py`).
 

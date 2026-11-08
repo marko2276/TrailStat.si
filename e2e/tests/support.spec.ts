@@ -10,6 +10,8 @@ test("anyone can donate with a UPN QR code from the support page", async ({ brow
   await expect(page.getByRole("heading", { name: "Support TrailStat.si" })).toBeVisible();
   await expect(page.getByText("SI56 0201 7001 4356 205")).toBeVisible();
   await expect(page.getByText("Planinsko društvo Test")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Send with Flik" })).toBeVisible();
+  await expect(page.getByText("041 000 000")).toBeVisible();
 
   const qr = page.getByRole("img", { name: "UPN QR code for a donation of €10" });
   await expect(qr).toBeVisible();

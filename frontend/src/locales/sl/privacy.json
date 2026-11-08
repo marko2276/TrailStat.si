@@ -14,7 +14,7 @@
   },
   "sharing": {
     "title": "Kdo jih lahko vidi",
-    "text": "Člani skupine vidijo imena drug drugega in pohode skupine. Poti so vidne, kot sami izberete. Prijavo upravlja Hanko, nemški ponudnik. E-pošto pošiljamo prek francoskega ponudnika Scaleway, ki prejme naslov prejemnika in sporočilo. Slike zemljevidov prihajajo iz storitve OpenFreeMap, podatki o poteh pa iz storitev OpenStreetMap, ki vidijo vaš internetni naslov, ko jih kontaktira vaš brskalnik ali naš strežnik. Podatkov ne prodajamo. Donacije gredo z bančnim nakazilom neposredno na račun, naveden na strani za podporo. Aplikacija o njih ničesar ne beleži; kot pri vsakem nakazilu imetnik računa na bančnem izpisku vidi ime plačnika, znesek in namen."
+    "text": "Člani skupine vidijo imena drug drugega in pohode skupine. Poti so vidne, kot sami izberete. Prijavo upravlja Hanko, nemški ponudnik. E-pošto pošiljamo prek francoskega ponudnika Scaleway, ki prejme naslov prejemnika in sporočilo. Slike zemljevidov prihajajo iz storitve OpenFreeMap, podatki o poteh pa iz storitev OpenStreetMap, ki vidijo vaš internetni naslov, ko jih kontaktira vaš brskalnik ali naš strežnik. Podatkov ne prodajamo. Donacije gredo z bančnim nakazilom ali s Flikom neposredno na račun, naveden na strani za podporo. Aplikacija o njih ničesar ne beleži; kot pri vsakem nakazilu imetnik računa na bančnem izpisku vidi ime plačnika, znesek in namen."
   },
   "where": {
     "title": "Kje so shranjeni",

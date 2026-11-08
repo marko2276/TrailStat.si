@@ -1,5 +1,6 @@
-"""Donations by bank transfer. The app only shows where to send money, with a UPN QR code that
-banking apps scan: no payment passes through it, and nothing about a donation is stored.
+"""Donations by bank transfer, with a UPN QR code that banking apps scan, and by Flik, to a phone
+number. The app only shows where to send money: no payment passes through it, and nothing about a
+donation is stored.
 
 Readable without an account, so the support page works before signing in.
 """
@@ -21,6 +22,10 @@ def get_donation_payee() -> Payee | None:
     return get_settings().donation_payee
 
 
+def get_flik_number() -> str | None:
+    return get_settings().donation_flik_number_display
+
+
 def _require_payee(payee: Annotated[Payee | None, Depends(get_donation_payee)]) -> Payee:
     if payee is None:
         raise ApiError(404, "donations_off")
@@ -30,7 +35,7 @@ def _require_payee(payee: Annotated[Payee | None, Depends(get_donation_payee)]) 
 DonationPayee = Annotated[Payee, Depends(_require_payee)]
 
 
-class DonationDetails(BaseModel):
+class BankTransfer(BaseModel):
     """What a payer types in by hand, without the QR code."""
 
     iban: str
@@ -41,15 +46,40 @@ class DonationDetails(BaseModel):
     reference: str
 
 
+class Flik(BaseModel):
+    """The phone number to send to, and a message to send with the money."""
+
+    number: str
+    message: str
+
+
+class DonationOptions(BaseModel):
+    """At least one is set."""
+
+    bank_transfer: BankTransfer | None
+    flik: Flik | None
+
+
 @router.get("")
-def donation_details(payee: DonationPayee) -> DonationDetails:
-    return DonationDetails(
-        iban=upn_qr.format_iban(payee.iban),
-        name=payee.name,
-        street=payee.street or None,
-        city=payee.city,
-        purpose=payee.purpose,
-        reference=upn_qr.NO_REFERENCE,
+def donation_options(
+    payee: Annotated[Payee | None, Depends(get_donation_payee)],
+    flik_number: Annotated[str | None, Depends(get_flik_number)],
+) -> DonationOptions:
+    if payee is None and flik_number is None:
+        raise ApiError(404, "donations_off")
+    purpose = payee.purpose if payee else get_settings().donation_purpose.strip()
+    return DonationOptions(
+        bank_transfer=None
+        if payee is None
+        else BankTransfer(
+            iban=upn_qr.format_iban(payee.iban),
+            name=payee.name,
+            street=payee.street or None,
+            city=payee.city,
+            purpose=payee.purpose,
+            reference=upn_qr.NO_REFERENCE,
+        ),
+        flik=None if flik_number is None else Flik(number=flik_number, message=purpose),
     )
 
 

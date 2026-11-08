@@ -13,7 +13,7 @@ vi.mock("../../auth/hanko", () => ({
   isHankoConfigured: true,
 }));
 
-const details = {
+const bankTransfer = {
   iban: "SI56 0201 7001 4356 205",
   name: "Marko Planinec",
   street: null,
@@ -21,6 +21,8 @@ const details = {
   purpose: "Donacija TrailStat.si",
   reference: "SI99",
 };
+const flik = { number: "041 123 456", message: "Donacija TrailStat.si" };
+const details = { bank_transfer: bankTransfer, flik: null };
 
 const qrImage = () => screen.getByRole<HTMLImageElement>("img", { name: /UPN QR/ });
 
@@ -45,6 +47,30 @@ describe("SupportPage", () => {
     await userEvent.click(screen.getByRole("radio", { name: "Your choice" }));
     expect(qrImage().getAttribute("src")).toBe("/api/donations/upn-qr.svg");
     expect(qrImage().alt).toBe("UPN QR code for a donation, without an amount");
+  });
+
+  it("shows the Flik number, which can be copied", async () => {
+    const writeText = vi.fn(async () => undefined);
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    mockApi({ "GET /api/donations": { bank_transfer: bankTransfer, flik } });
+    render(<SupportPage />);
+
+    expect(await screen.findByRole("heading", { name: "Send with Flik" })).toBeTruthy();
+    expect(screen.getByText("041 123 456")).toBeTruthy();
+    expect(screen.getByText(/add “Donacija TrailStat.si” as the message/)).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Copy number" }));
+    expect(writeText).toHaveBeenCalledWith("041123456");
+    expect(await screen.findByText("Number copied.")).toBeTruthy();
+    vi.unstubAllGlobals();
+  });
+
+  it("offers Flik alone, without a QR code, when there is no bank account", async () => {
+    mockApi({ "GET /api/donations": { bank_transfer: null, flik } });
+    render(<SupportPage />);
+
+    expect(await screen.findByText("041 123 456")).toBeTruthy();
+    expect(screen.queryByRole("img")).toBeNull();
+    expect(screen.queryByText("IBAN")).toBeNull();
   });
 
   it("says so when donations are off", async () => {

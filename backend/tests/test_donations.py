@@ -6,10 +6,11 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
-from app.api.donations import get_donation_payee
+from app.api.donations import get_donation_payee, get_flik_number
 from app.config import Settings
 from app.main import app
 from app.services import upn_qr
+from app.services.flik import normalise_flik_number
 from app.services.upn_qr import Payee, PayeeError
 
 # The example account of the UPN QR documentation, with a valid check number.
@@ -100,15 +101,39 @@ def test_wrong_donation_settings_refuse_to_start() -> None:
         Settings(donation_iban="SI56020170014356206", donation_name="M", donation_city="C")
 
 
+@pytest.mark.parametrize(
+    "number", ["041123456", "041 123 456", "041-123-456", "+38641123456", "00386 41 123 456"]
+)
+def test_flik_numbers_are_shown_in_the_national_form(number: str) -> None:
+    assert normalise_flik_number(number) == "041 123 456"
+
+
+@pytest.mark.parametrize("number", ["41123456", "0411234567", "+43 664 123456", "041 12a 456"])
+def test_flik_needs_a_slovenian_number(number: str) -> None:
+    with pytest.raises(ValueError, match="Slovenian"):
+        normalise_flik_number(number)
+
+
+def test_settings_for_flik() -> None:
+    assert Settings(donation_flik_number="").donation_flik_number_display is None
+    assert Settings(donation_flik_number="+386 41 123 456").donation_flik_number_display == (
+        "041 123 456"
+    )
+    with pytest.raises(ValidationError, match="DONATION_"):
+        Settings(donation_flik_number="12345")
+
+
 @pytest.fixture
 def donations_client() -> Iterator[TestClient]:
     app.dependency_overrides[get_donation_payee] = lambda: PAYEE
+    app.dependency_overrides[get_flik_number] = lambda: None
     yield TestClient(app)
     app.dependency_overrides.clear()
 
 
 def test_donations_off(donations_client: TestClient) -> None:
     app.dependency_overrides[get_donation_payee] = lambda: None
+    app.dependency_overrides[get_flik_number] = lambda: None
 
     for path in ("/api/donations", "/api/donations/upn-qr.svg"):
         response = donations_client.get(path)
@@ -121,18 +146,41 @@ def test_details_need_no_account(donations_client: TestClient) -> None:
 
     assert response.status_code == 200
     assert response.json() == {
-        "iban": "SI56 0201 7001 4356 205",
-        "name": "Marko Planinec",
-        "street": "Gorska ulica 1",
-        "city": "1000 Ljubljana",
-        "purpose": "Donacija TrailStat.si",
-        "reference": "SI99",
+        "bank_transfer": {
+            "iban": "SI56 0201 7001 4356 205",
+            "name": "Marko Planinec",
+            "street": "Gorska ulica 1",
+            "city": "1000 Ljubljana",
+            "purpose": "Donacija TrailStat.si",
+            "reference": "SI99",
+        },
+        "flik": None,
     }
+
+
+def test_bank_transfer_and_flik(donations_client: TestClient) -> None:
+    app.dependency_overrides[get_flik_number] = lambda: "041 123 456"
+
+    flik = donations_client.get("/api/donations").json()["flik"]
+    assert flik == {"number": "041 123 456", "message": "Donacija TrailStat.si"}
+
+
+def test_flik_alone(donations_client: TestClient) -> None:
+    """Without a bank account there are details, but no QR code."""
+    app.dependency_overrides[get_donation_payee] = lambda: None
+    app.dependency_overrides[get_flik_number] = lambda: "041 123 456"
+
+    options = donations_client.get("/api/donations").json()
+    assert options["bank_transfer"] is None
+    assert options["flik"]["number"] == "041 123 456"
+    response = donations_client.get("/api/donations/upn-qr.svg")
+    assert response.status_code == 404
+    assert response.json() == {"detail": "donations_off"}
 
 
 def test_details_without_a_street(donations_client: TestClient) -> None:
     app.dependency_overrides[get_donation_payee] = lambda: Payee(iban=IBAN, name="M", city="C")
-    assert donations_client.get("/api/donations").json()["street"] is None
+    assert donations_client.get("/api/donations").json()["bank_transfer"]["street"] is None
 
 
 @pytest.mark.parametrize("query", ["", "?amount_cents=1000"])

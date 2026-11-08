@@ -10,6 +10,12 @@
     "altOwnAmount": "Koda UPN QR za donacijo, brez zneska",
     "howTo": "Kodo skenirajte v mobilni aplikaciji svoje banke, z možnostjo plačila UPN QR. Podatki se izpolnijo sami; znesek lahko pred plačilom še spremenite."
   },
+  "flik": {
+    "title": "Pošljite s Flikom",
+    "copy": "Kopiraj številko",
+    "copied": "Številka je kopirana.",
+    "howTo": "V mobilni aplikaciji svoje banke izberite Flik in na to telefonsko številko pošljite poljuben znesek. Kot sporočilo lahko dodate »{{message}}«."
+  },
   "transfer": {
     "title": "Ali nakažite ročno",
     "recipient": "Prejemnik",
