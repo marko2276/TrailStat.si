@@ -5,6 +5,7 @@ import type { GeoJSONSource, GeoJSONSourceSpecification } from "maplibre-gl";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { LineString } from "./api";
+import { addHikingLayers } from "./hikingLayers";
 import type { TrailMapProps } from "./LazyTrailMap";
 
 // No API key, and not openstreetmap.org's tile servers, whose policy forbids use in apps.
@@ -81,6 +82,7 @@ export default function TrailMap({ geometry, label, onVisibleAreaChange }: Trail
     onChange.current?.(visibleArea(map));
 
     map.on("load", () => {
+      addHikingLayers(map);
       map.addSource(ROUTE_SOURCE, { type: "geojson", data: asFeature(initialGeometry.current) });
       const line = { "line-cap": "round", "line-join": "round" } as const;
       // A white outline keeps the line readable over woods and meadows of a similar colour.

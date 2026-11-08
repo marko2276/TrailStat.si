@@ -23,7 +23,7 @@
 | Component | Technology | Notes |
 |---|---|---|
 | Frontend | TypeScript, React, Vite, PWA | One codebase for desktop and mobile. Can be wrapped with Capacitor for app stores later. |
-| Maps | MapLibre GL JS | Vector tiles from OpenFreeMap by default, no key needed (`VITE_MAP_STYLE_URL`). Not the openstreetmap.org tile servers (usage policy forbids app use). |
+| Maps | MapLibre GL JS | Vector tiles from OpenFreeMap by default, no key needed (`VITE_MAP_STYLE_URL`). Not the openstreetmap.org tile servers (usage policy forbids app use). Footpaths and tracks are drawn as on a hiking map, from the same tiles (`hikingLayers.ts`); marked hiking routes are not in them. |
 | Elevation chart | Hand-written SVG | Rendered from the trail's elevation profile. |
 | i18n | i18next (frontend), Babel/gettext (backend e-mails) | `en`, `sl` at launch. |
 | Backend | Python 3.12+, FastAPI, SQLAlchemy 2, GeoAlchemy2, Alembic, Pydantic | REST API with generated OpenAPI spec. Validates Hanko session tokens (JWT via JWKS); never sees passwords. |

@@ -14,6 +14,12 @@ const fake = vi.hoisted(() => {
     handlers = new Map<string, () => void>();
     sources = new Map<string, { data: unknown; setData: (data: unknown) => void }>();
     layers: string[] = [];
+    /** Where each layer was put: the layer it went below, if any. */
+    below = new Map<string, string | undefined>();
+    style: { sources: Record<string, { type: string }>; layers: { id: string; type: string }[] } = {
+      sources: {},
+      layers: [],
+    };
     fitted: unknown[] = [];
     removed = false;
     bounds = { west: 13, south: 45, east: 15, north: 47 };
@@ -40,8 +46,12 @@ const fake = vi.hoisted(() => {
     getSource(id: string) {
       return this.sources.get(id);
     }
-    addLayer(layer: { id: string }) {
+    addLayer(layer: { id: string }, before?: string) {
       this.layers.push(layer.id);
+      this.below.set(layer.id, before);
+    }
+    getStyle() {
+      return this.style;
     }
     fitBounds(bounds: unknown) {
       this.fitted.push(bounds);
@@ -118,6 +128,37 @@ describe("TrailMap", () => {
     render(<TrailMap label="Map of Krim" />);
 
     expect(screen.getByRole("region", { name: "Map of Krim" })).toBeTruthy();
+  });
+
+  it("draws footpaths and tracks as on a hiking map, below labels and the trail", () => {
+    render(<TrailMap label="Map" geometry={line} />);
+    const map = theMap();
+    map.style = {
+      sources: { openmaptiles: { type: "vector" } },
+      layers: [
+        { id: "background", type: "background" },
+        { id: "road_path_pedestrian", type: "line" },
+        { id: "road_one_way_arrow", type: "symbol" },
+        { id: "place_label", type: "symbol" },
+      ],
+    };
+
+    act(() => map.fire("load"));
+
+    expect(map.layers).toEqual(["hiking-tracks", "hiking-paths", "route-outline", "route"]);
+    expect(map.below.get("hiking-tracks")).toBe("road_one_way_arrow");
+    expect(map.below.get("hiking-paths")).toBe("road_one_way_arrow");
+    // The trail's line goes on top of everything.
+    expect(map.below.get("route")).toBeUndefined();
+  });
+
+  it("leaves a style without those tiles alone", () => {
+    render(<TrailMap label="Map" geometry={line} />);
+    const map = theMap();
+
+    act(() => map.fire("load"));
+
+    expect(map.layers).toEqual(["route-outline", "route"]);
   });
 
   it("draws the line and zooms to it once the map has loaded", () => {
