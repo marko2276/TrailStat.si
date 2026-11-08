@@ -39,7 +39,10 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      # Over TCP: on the first start the image runs a temporary server for its setup, on the socket
+      # only, then restarts. Checked on the socket, that server looked ready, and the migration
+      # connected during the restart and failed.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 20
