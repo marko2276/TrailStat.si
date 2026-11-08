@@ -12,6 +12,8 @@ export interface Me {
   avatar_url: string | null;
   /** null until the user's language has been stored for the first time */
   locale: string | null;
+  /** Whether the admin page is open to this user. */
+  is_admin: boolean;
 }
 
 export type MeUpdate = Partial<Pick<Me, "display_name" | "country" | "city">> & {

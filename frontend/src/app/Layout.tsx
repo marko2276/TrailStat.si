@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Link, NavLink, Outlet } from "react-router";
 import { useAuth } from "../auth/AuthContext";
+import { AdminLink } from "../features/admin/AdminLink";
 import { LanguageSwitcher } from "../features/profile/LanguageSwitcher";
 import { LanguageSync } from "../features/profile/LanguageSync";
 import { SupportLink } from "../features/support/SupportLink";
@@ -31,6 +32,7 @@ export function Layout() {
           <LanguageSwitcher />
           {signedIn && (
             <>
+              <AdminLink />
               <NavLink to="/profile">{t("profile")}</NavLink>
               <button className="btn" onClick={() => void logout()}>
                 {t("logout")}

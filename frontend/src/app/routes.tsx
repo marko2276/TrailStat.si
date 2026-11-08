@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import type { RouteObject } from "react-router";
 import { LoginPage } from "../auth/LoginPage";
 import { RequireAuth } from "../auth/RequireAuth";
+import * as admin from "../features/admin/routes";
 import * as groups from "../features/groups/routes";
 import * as hikes from "../features/hikes/routes";
 import * as profile from "../features/profile/routes";
@@ -35,6 +36,7 @@ export const appRoutes: RouteObject[] = [
           ...hikes.routes,
           ...groups.routes,
           ...stats.routes,
+          ...admin.routes,
         ],
       },
       { path: "*", element: <NotFound /> },

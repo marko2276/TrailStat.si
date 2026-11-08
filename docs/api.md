@@ -167,6 +167,19 @@ No account needed.
   (100 to 1,000,000 cents) or, without it, for the payer to enter one. Cached for an hour. The
   content follows the UPN QR standard of the Bank Association of Slovenia (`app/services/upn_qr.py`).
 
+## Admin (`app/api/admin.py`)
+
+Only for the Hanko user IDs in `ADMIN_USER_IDS`; to everyone else 404 `not_found`. `GET /me`
+says `is_admin`.
+
+- `GET /admin/stats` → `{users, content, database, server}`: totals only, no one's data. Users:
+  `total`, `new_7_days`, `new_30_days`, `active_30_days` (by `users.last_seen_on`, the UTC day of
+  the last request), `by_language` (`unknown` for no language yet). Content: trails by source and
+  visibility, archived trails, hikes (and in the last 30 days, by start), groups, memberships,
+  guests, pending invitations and join requests. Database: size, the 8 largest tables with an
+  estimate of their rows, the migration. Server: `version` (`APP_VERSION`), environment, start
+  time, elevation tiles and their size, and whether e-mail and donations are configured.
+
 ## Your account (`app/api/me.py`)
 
 - `GET /me/export` → everything stored about the user, as JSON

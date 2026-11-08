@@ -6,6 +6,7 @@ so another provider can be swapped in (see ADR 0003).
 
 import logging
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from functools import lru_cache
 from typing import Annotated, Any
 
@@ -116,9 +117,16 @@ def fetch_email_from_hanko(identity: TokenIdentity) -> str:
 
 def get_or_create_user(session: Session, identity: TokenIdentity) -> User:
     user = session.scalar(select(User).where(User.auth_subject == identity.subject))
+    today = datetime.now(UTC).date()
     if user is not None:
+        changed = False
         if identity.email and identity.email != user.email:
             user.email = identity.email
+            changed = True
+        if user.last_seen_on != today:
+            user.last_seen_on = today
+            changed = True
+        if changed:
             session.commit()
         return user
 
@@ -130,6 +138,7 @@ def get_or_create_user(session: Session, identity: TokenIdentity) -> User:
             auth_subject=identity.subject,
             email=email,
             display_name=DEFAULT_DISPLAY_NAME,
+            last_seen_on=today,
         )
         .on_conflict_do_nothing(index_elements=[User.auth_subject])
     )

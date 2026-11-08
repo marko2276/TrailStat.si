@@ -60,6 +60,7 @@ def export_account(session: Session, user: User) -> dict[str, Any]:
             "city": user.city,
             "locale": user.locale,
             "created_at": user.created_at.isoformat(),
+            "last_seen_on": user.last_seen_on.isoformat() if user.last_seen_on else None,
         },
         "trails": [
             {
