@@ -1,0 +1,22 @@
+{
+  "title": "Support TrailStat.si",
+  "intro": "TrailStat.si is free, with no advertising and no tracking. If you find it useful, you can help pay for the server with a donation.",
+  "off": "Donations are not open at the moment.",
+  "qr": {
+    "title": "Pay with your banking app",
+    "amount": "Amount",
+    "ownAmount": "Your choice",
+    "alt": "UPN QR code for a donation of {{amount}}",
+    "altOwnAmount": "UPN QR code for a donation, without an amount",
+    "howTo": "Scan the code in your bank's mobile app, with the option to pay a UPN QR. The details are filled in for you; you can still change the amount before you pay."
+  },
+  "transfer": {
+    "title": "Or transfer by hand",
+    "recipient": "Recipient",
+    "iban": "IBAN",
+    "purpose": "Purpose",
+    "reference": "Reference"
+  },
+  "direct": "The money goes straight to the bank account above. TrailStat.si never handles it, and records nothing about donations.",
+  "thanks": "Thank you!"
+}

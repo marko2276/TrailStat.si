@@ -119,6 +119,14 @@ they belong to (that group's hikes):
 
 Distance and elevation come from the trail; time comes from the hike.
 
+### Donations
+
+Anyone, signed in or not, can support TrailStat.si by bank transfer from a support page, linked in
+the footer. It shows a UPN QR code that Slovenian banking apps scan, with a choice of amounts or
+none, and the account details to type in by hand. The money goes straight to the bank account: the
+app handles no payment and stores nothing about donations. Without an account configured, the page
+and its link are hidden.
+
 ## 6. Non-functional requirements
 
 | ID | Requirement |

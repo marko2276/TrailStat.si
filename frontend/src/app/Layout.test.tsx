@@ -15,7 +15,10 @@ describe("Layout", () => {
   afterEach(() => i18n.changeLanguage("en"));
 
   it("names the main navigation in the user's language", async () => {
-    mockApi({ "GET /api/me": { id: "u1", email: "a@b.si", display_name: "A", locale: null } });
+    mockApi({
+      "GET /api/me": { id: "u1", email: "a@b.si", display_name: "A", locale: null },
+      "GET /api/donations": { status: 404, body: { detail: "donations_off" } },
+    });
     await i18n.changeLanguage("sl");
     render(<Layout />);
 

@@ -1,6 +1,7 @@
 # API contract between features
 
-Every endpoint is under `/api` and needs `Authorization: Bearer <Hanko token>`. Lists return
+Every endpoint is under `/api` and needs `Authorization: Bearer <Hanko token>`, except health and
+donations. Lists return
 `{items, total, limit, offset}` and take `limit` (default 50, maximum 200) and `offset`.
 Timestamps are ISO 8601 with a time zone. Errors are `{"detail": "<code>"}`; the code is
 translated by the frontend. The full, generated reference is at `/api/docs`, except in production.
@@ -151,6 +152,16 @@ Error codes (422): `trail_archived`, `trail_not_visible_to_group`, `attendees_re
   hike_count, best_duration_s, best_hike_id, best_start_at}]`, one per trail hiked in the period,
   most hiked first, then by name. The best is the fastest hike; of equally fast ones, the first.
   The same hikes count as in the totals: the user's attended ones, or the group's.
+
+## Donations (`app/api/donations.py`)
+
+No account needed. Both answer 404 `donations_off` while `DONATION_IBAN` is not set.
+
+- `GET /donations` → `{iban, name, street, city, purpose, reference}`: where to send a donation by
+  hand. The IBAN is in groups of four; `street` may be null; `reference` is `SI99` (none).
+- `GET /donations/upn-qr.svg?amount_cents=` → the UPN QR code as an SVG image, with the amount
+  (100 to 1,000,000 cents) or, without it, for the payer to enter one. Cached for an hour. The
+  content follows the UPN QR standard of the Bank Association of Slovenia (`app/services/upn_qr.py`).
 
 ## Your account (`app/api/me.py`)
 

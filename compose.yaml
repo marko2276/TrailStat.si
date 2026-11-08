@@ -19,6 +19,11 @@ x-backend-environment: &backend-environment
   SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
   APP_URL: ${APP_URL:-http://localhost:8080}
   OVERPASS_URL: ${OVERPASS_URL:-https://overpass-api.de/api/interpreter}
+  DONATION_IBAN: ${DONATION_IBAN:-}
+  DONATION_NAME: ${DONATION_NAME:-}
+  DONATION_STREET: ${DONATION_STREET:-}
+  DONATION_CITY: ${DONATION_CITY:-}
+  DONATION_PURPOSE: ${DONATION_PURPOSE:-Donacija TrailStat.si}
 
 services:
   db:

@@ -14,7 +14,7 @@
   },
   "sharing": {
     "title": "Who can see it",
-    "text": "Group members see each other's names and the group's hikes. Trails are visible as you choose. Sign-in is handled by Hanko, a German provider. E-mail is sent through Scaleway, a French provider, which receives the recipient's address and the message. Map images come from OpenFreeMap and trail data from OpenStreetMap services, which see your internet address when your browser or our server contacts them. We do not sell data."
+    "text": "Group members see each other's names and the group's hikes. Trails are visible as you choose. Sign-in is handled by Hanko, a German provider. E-mail is sent through Scaleway, a French provider, which receives the recipient's address and the message. Map images come from OpenFreeMap and trail data from OpenStreetMap services, which see your internet address when your browser or our server contacts them. We do not sell data. Donations go by bank transfer straight to the account shown on the support page. The app records nothing about them; as with any transfer, the account holder sees the payer's name, the amount and the purpose on the bank statement."
   },
   "where": {
     "title": "Where it is kept",
