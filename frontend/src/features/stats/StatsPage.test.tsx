@@ -60,6 +60,7 @@ function tile(label: string): string | null | undefined {
 const allTime = {
   [GROUPS]: page([group]),
   [statsUrl("/stats/me")]: totals(),
+  [statsUrl("/stats/me/trails")]: [],
   [hikesUrl("/hikes")]: page([makeHike()]),
 };
 
@@ -118,6 +119,7 @@ describe("personal statistics", () => {
     const api = mockApi({
       ...allTime,
       [statsUrl("/stats/me", start, end)]: totals({ hike_count: 7 }),
+      [statsUrl("/stats/me/trails", start, end)]: [],
       [hikesUrl("/hikes", start, end)]: page([]),
     });
     render(<StatsPage />);
@@ -137,6 +139,7 @@ describe("personal statistics", () => {
     mockApi({
       ...allTime,
       [statsUrl("/stats/me", start, end)]: totals({ hike_count: 8 }),
+      [statsUrl("/stats/me/trails", start, end)]: [],
       [hikesUrl("/hikes", start, end)]: page([]),
     });
     render(<StatsPage />);
@@ -155,6 +158,7 @@ describe("personal statistics", () => {
     const api = mockApi({
       ...allTime,
       [statsUrl("/stats/me", start, end)]: totals({ hike_count: 9 }),
+      [statsUrl("/stats/me/trails", start, end)]: [],
       [hikesUrl("/hikes", start, end)]: page([]),
     });
     render(<StatsPage />);
@@ -219,6 +223,7 @@ describe("group statistics", () => {
     [GROUPS]: page([group]),
     "GET /api/groups/g1": group,
     [statsUrl("/stats/groups/g1")]: groupStats,
+    [statsUrl("/stats/groups/g1/trails")]: [],
     [hikesUrl("/groups/g1/hikes")]: page([makeHike({ group_id: "g1", group_name: "Planinci" })]),
   };
 
@@ -247,6 +252,7 @@ describe("group statistics", () => {
     mockApi({
       ...members,
       [statsUrl("/stats/groups/g1", start, end)]: { totals: ZERO, attendees: [] },
+      [statsUrl("/stats/groups/g1/trails", start, end)]: [],
       [hikesUrl("/groups/g1/hikes", start, end)]: page([]),
     });
     render(<StatsPage />, { route: "/stats?group=g1" });
@@ -299,5 +305,88 @@ describe("group statistics", () => {
     });
     render(<StatsPage />, { route: "/stats?group=priv" });
     expect((await screen.findByRole("alert")).textContent).toContain("does not exist");
+  });
+});
+
+describe("best times by trail", () => {
+  const krim = {
+    trail: { id: "t1", name: "Krim", distance_m: 12_000, elevation_gain_m: 700, archived: false },
+    hike_count: 3,
+    best_duration_s: 9_000,
+    best_hike_id: "h1",
+    best_start_at: "2026-05-02T08:00:00Z",
+  };
+  const triglav = {
+    trail: {
+      id: "t2",
+      name: "Triglav",
+      distance_m: 20_000,
+      elevation_gain_m: 1_800,
+      archived: false,
+    },
+    hike_count: 1,
+    best_duration_s: 30_600,
+    best_hike_id: "h2",
+    best_start_at: "2025-08-15T05:00:00Z",
+  };
+
+  it("lists each trail's best time, linking to the trail, in the order given", async () => {
+    mockApi({ ...allTime, [statsUrl("/stats/me/trails")]: [krim, triglav] });
+    render(<StatsPage />);
+
+    const heading = await screen.findByRole("heading", { name: "Best times by trail" });
+    const table = heading.closest("section")!.querySelector("table")!;
+    const rows = within(table).getAllByRole("row").slice(1);
+    expect(rows.map((row) => within(row).getByRole("link").textContent)).toEqual([
+      "Krim",
+      "Triglav",
+    ]);
+    expect(rows[0].textContent).toContain("12 km");
+    expect(rows[0].textContent).toMatch(/2\D+30\D+/);
+    expect(rows[0].textContent).toContain("May 2, 2026");
+    expect(within(rows[1]).getByRole("link").getAttribute("href")).toBe("/trails/t2");
+    expect(screen.getByText("Your fastest hike on each trail in this period.")).toBeTruthy();
+  });
+
+  it("follows the period", async () => {
+    const start = "2023-12-31T23:00:00.000Z";
+    const end = "2024-12-31T23:00:00.000Z";
+    mockApi({
+      ...allTime,
+      [statsUrl("/stats/me/trails")]: [krim],
+      [statsUrl("/stats/me", start, end)]: totals({ hike_count: 1 }),
+      [statsUrl("/stats/me/trails", start, end)]: [triglav],
+      [hikesUrl("/hikes", start, end)]: page([]),
+    });
+    render(<StatsPage />);
+    await screen.findByRole("link", { name: "Krim" });
+
+    await selectPeriod("year");
+    fireEvent.change(screen.getByLabelText("Year"), { target: { value: "2024" } });
+
+    expect(await screen.findByRole("link", { name: "Triglav" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Krim" })).toBeNull();
+  });
+
+  it("is left out without hikes", async () => {
+    mockApi(allTime);
+    render(<StatsPage />);
+
+    await screen.findByRole("heading", { name: "Triglav" });
+    expect(screen.queryByRole("heading", { name: "Best times by trail" })).toBeNull();
+  });
+
+  it("shows a group's best times for members", async () => {
+    mockApi({
+      [GROUPS]: page([group]),
+      "GET /api/groups/g1": group,
+      [statsUrl("/stats/groups/g1")]: { totals: totals({ hike_count: 3 }), attendees: [] },
+      [statsUrl("/stats/groups/g1/trails")]: [krim],
+      [hikesUrl("/groups/g1/hikes")]: page([]),
+    });
+    render(<StatsPage />, { route: "/stats?group=g1" });
+
+    expect(await screen.findByRole("link", { name: "Krim" })).toBeTruthy();
+    expect(screen.getByText("The group's fastest hike on each trail in this period.")).toBeTruthy();
   });
 });

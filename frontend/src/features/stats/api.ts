@@ -17,6 +17,21 @@ export interface AttendeeTotals {
   totals: Totals;
 }
 
+/** The fastest hike on a trail in the period. Of equally fast hikes, the first. */
+export interface TrailBestTime {
+  trail: {
+    id: string;
+    name: string;
+    distance_m: number;
+    elevation_gain_m: number | null;
+    archived: boolean;
+  };
+  hike_count: number;
+  best_duration_s: number;
+  best_hike_id: string;
+  best_start_at: string;
+}
+
 export interface GroupStats {
   totals: Totals;
   attendees: AttendeeTotals[];
@@ -38,6 +53,17 @@ export function useGroupStats(groupId: string, range: PeriodRange) {
   return useQuery({
     queryKey: [STATS_KEY, url],
     queryFn: () => api.get<GroupStats>(url),
+  });
+}
+
+/** Most hiked trails first. Without `groupId`, the user's own. */
+export function useBestTimes(groupId: string | null, range: PeriodRange) {
+  const url = withQuery(groupId ? `/stats/groups/${groupId}/trails` : "/stats/me/trails", {
+    ...range,
+  });
+  return useQuery({
+    queryKey: [STATS_KEY, url],
+    queryFn: () => api.get<TrailBestTime[]>(url),
   });
 }
 

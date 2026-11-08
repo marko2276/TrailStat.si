@@ -146,6 +146,11 @@ Error codes (422): `trail_archived`, `trail_not_visible_to_group`, `attendees_re
   so this is what non-members of a public group see.
 - `GET /stats/groups/{id}?start_from=&start_to=` → members only:
   `{totals: Totals, attendees: [{user_id, guest_id, name, totals: Totals}]}`
+- `GET /stats/me/trails?start_from=&start_to=` and `GET /stats/groups/{id}/trails?start_from=&start_to=`
+  (members only) → best times: `[{trail: {id, name, distance_m, elevation_gain_m, archived},
+  hike_count, best_duration_s, best_hike_id, best_start_at}]`, one per trail hiked in the period,
+  most hiked first, then by name. The best is the fastest hike; of equally fast ones, the first.
+  The same hikes count as in the totals: the user's attended ones, or the group's.
 
 ## Your account (`app/api/me.py`)
 
