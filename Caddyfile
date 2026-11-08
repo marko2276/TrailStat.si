@@ -5,7 +5,23 @@
 		X-Content-Type-Options nosniff
 		X-Frame-Options DENY
 		Referrer-Policy strict-origin-when-cross-origin
+		# Browser features the app does not use. The clipboard (copying the Flik number) is not listed.
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
 	}
+
+	# What the app's pages may load and contact: the app itself, Hanko for signing in, and the map
+	# tiles. Injected scripts do not run, and nothing can be sent elsewhere. Inline styles are
+	# allowed: MapLibre and Hanko's components set them, and styles cannot run code.
+	@app not path /api/*
+	header @app Content-Security-Policy "default-src 'self'; script-src 'self'; connect-src 'self' {$HANKO_ORIGIN} {$MAP_ORIGIN}; img-src 'self' data: blob: {$MAP_ORIGIN}; font-src 'self' {$MAP_ORIGIN}; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; child-src blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+
+	# API responses are data, and load nothing: also an SVG opened on its own runs nothing. The
+	# generated API docs, off in production, load Swagger UI from a CDN.
+	@api {
+		path /api/*
+		not path /api/docs /api/openapi.json
+	}
+	header @api Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
 
 	handle /api/* {
 		reverse_proxy backend:8000

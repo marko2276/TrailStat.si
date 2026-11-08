@@ -49,3 +49,8 @@ services:
     build:
       args:
         VITE_HANKO_API_URL: http://localhost:${E2E_HANKO_PORT:-14000}
+
+  caddy:
+    environment:
+      # The browser reaches the stand-in for Hanko here (VITE_HANKO_API_URL above).
+      HANKO_ORIGIN: http://localhost:${E2E_HANKO_PORT:-14000}
